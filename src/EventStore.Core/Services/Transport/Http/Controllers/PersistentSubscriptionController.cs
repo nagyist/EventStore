@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using EventStore.Core.Bus;
 using EventStore.Core.Messages;
 using EventStore.Common.Log;
@@ -58,6 +59,8 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
         {
             if (_httpForwarder.ForwardRequest(http))
                 return;
+            var groupname = match.BoundVariables["subscription"];
+            var stream = match.BoundVariables["stream"];
             var envelope = new SendToHttpEnvelope(
                 _networkSendQueue, http,
                 (args, message) => http.ResponseCodec.To(message),
@@ -83,13 +86,11 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
                             break;
                     }
                     return new ResponseConfiguration(code, http.ResponseCodec.ContentType,
-                        http.ResponseCodec.Encoding);
+                        http.ResponseCodec.Encoding, new KeyValuePair<string, string>("location", MakeUrl(http, "/subscriptions/" + stream + "/" + groupname)));
                 });
             http.ReadTextRequestAsync(
                 (o, s) =>
                 {
-                    var groupname = match.BoundVariables["subscription"];
-                    var stream = match.BoundVariables["stream"];
                     var data = http.RequestCodec.From<PutSubscriptionData>(s);
                     var message = new ClientMessage.CreatePersistentSubscription(Guid.NewGuid(), Guid.NewGuid(),
                                        envelope, stream, groupname, data == null || data.ResolveLinktos, http.User, "", "");
@@ -204,6 +205,7 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
         private IEnumerable<SubscriptionInfo> ToDto(MonitoringMessage.GetPersistentSubscriptionStatsCompleted message)
         {
             if (message == null) yield break;
+            if (message.SubscriptionStats == null) yield break;
             foreach (var stat in message.SubscriptionStats)
             {
                 var info = new SubscriptionInfo

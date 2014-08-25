@@ -22,10 +22,12 @@ namespace EventStore.Core.Services.PersistentSubscription
         public readonly string EventStreamId;
         public readonly string GroupName;
         private readonly IPersistentSubscriptionEventLoader _eventLoader;
-        private readonly Dictionary<Guid, PersistentSubscriptionClient> _clients = new Dictionary<Guid, PersistentSubscriptionClient>();
+        private readonly IPersistentSubscriptionCheckpointReader _checkpointReader;
+        private readonly IPersistentSubscriptionCheckpointWriter _checkpointWriter;
+        private Dictionary<Guid, PersistentSubscriptionClient> _clients = new Dictionary<Guid, PersistentSubscriptionClient>();
         private ResolvedEvent[] _eventBuffer = new ResolvedEvent[0];
         private List<ResolvedEvent> _transitionBuffer;
-        private readonly CheckpointingQueue _checkpointingQueue;
+        private CheckpointingQueue _checkpointingQueue;
         private bool _outstandingFetchRequest;
         private int _nextEventNumber;
         private int _eventBufferIndex;
@@ -60,10 +62,25 @@ namespace EventStore.Core.Services.PersistentSubscription
             EventStreamId = eventStreamId;
             GroupName = groupName;
             _eventLoader = eventLoader;
-            _checkpointingQueue = new CheckpointingQueue(checkpointWriter.BeginWriteState);
+            _checkpointReader = checkpointReader;
+            _checkpointWriter = checkpointWriter;
             _totalTimeWatch = new Stopwatch();
             _totalTimeWatch.Start();
-            checkpointReader.BeginLoadState(subscriptionId, OnStateLoaded);
+            InitAsNew();
+        }
+
+        public void InitAsNew()
+        {
+            _nextEventNumber = 0;
+            _lastEventNumber = -1;
+            _eventBufferIndex = 0;
+            _outstandingFetchRequest = false;
+            _eventSequence = 0;
+            _state = PersistentSubscriptionState.Pull;
+            _eventBuffer = new ResolvedEvent[0];
+            _clients = new Dictionary<Guid, PersistentSubscriptionClient>();
+            _checkpointingQueue = new CheckpointingQueue(_checkpointWriter.BeginWriteState);
+            _checkpointReader.BeginLoadState(SubscriptionId, OnStateLoaded);
         }
 
         private void OnStateLoaded(int? lastProcessedEvent)
@@ -77,6 +94,7 @@ namespace EventStore.Core.Services.PersistentSubscription
             }
             else
             {
+                //TODO CC config for start from beginning of stream instead of current.
                 _state = PersistentSubscriptionState.Push;
             }
         }
@@ -107,19 +125,19 @@ namespace EventStore.Core.Services.PersistentSubscription
 
         public void RemoveClientByConnectionId(Guid connectionId)
         {
-            var client = _clients.Values.FirstOrDefault(x => x.ConnectionId == connectionId);
-            if (client != null)
+            var clients = _clients.Values.Where(x => x.ConnectionId == connectionId).ToList();
+            foreach(var client in clients)
             {
                 _clients.Remove(client.CorrelationId);
                 var unconfirmedEvents = client.GetUnconfirmedEvents();
                 Log.Debug("Client {0} disconnected. Rerouting unconfirmed events.", client.ConnectionId);
                 foreach (var evnt in unconfirmedEvents)
                 {
-                    ForcePushToAny(evnt);
+                    HandleUnhandledEvent(evnt);
                 }
             }
         }
-        
+
         public void RemoveClientByCorrelationId(Guid correlationId, bool sendDropNotification)
         {
             PersistentSubscriptionClient client;
@@ -134,7 +152,7 @@ namespace EventStore.Core.Services.PersistentSubscription
                 Log.Debug("Client {0} disconnected. Rerouting unconfirmed events.", client.ConnectionId);
                 foreach (var evnt in unconfirmedEvents)
                 {
-                    ForcePushToAny(evnt);
+                    HandleUnhandledEvent(evnt);
                 }
             }
         }
@@ -182,7 +200,7 @@ namespace EventStore.Core.Services.PersistentSubscription
             }
         }
 
-        public void NotifyReadCompleted(ResolvedEvent[] events, int nextEventNumber)
+        public void HandleReadEvents(ResolvedEvent[] events, int nextEventNumber)
         {
             if (nextEventNumber != -1)
             {
@@ -270,9 +288,10 @@ namespace EventStore.Core.Services.PersistentSubscription
             _eventSequence++;
         }
 
-        private void ForcePushToAny(SequencedEvent sequencedEvent)
+        private void HandleUnhandledEvent(SequencedEvent sequencedEvent)
         {
             PersistentSubscriptionClient leastBusy = null;
+            if (_clients.Count == 0) RevertToCheckPoint();
             foreach ( var client in _clients.Values)
             {
                 if (leastBusy == null || client.FreeSlots > leastBusy.FreeSlots)
@@ -280,12 +299,22 @@ namespace EventStore.Core.Services.PersistentSubscription
                     leastBusy = client;
                 }
             }
-            //TODO CC this needs to merge back!
+            //TODO CC this should to merge back instead of reverting!
             if (leastBusy != null)
             {
                 Interlocked.Increment(ref _totalItems);
                 leastBusy.Push(sequencedEvent);
             }
+            else
+            {
+                HandleReadEvents(new [] {sequencedEvent.Event}, sequencedEvent.Event.OriginalEventNumber);               
+            }
+        }
+
+        private void RevertToCheckPoint()
+        {
+            Log.Debug("No clients, reverting future to checkpoint.");
+            InitAsNew();
         }
 
         private void TryPushSomeEvents()
@@ -311,7 +340,7 @@ namespace EventStore.Core.Services.PersistentSubscription
                 _outstandingFetchRequest = true;
                 _eventBufferIndex = 0;
                 _eventBuffer = new ResolvedEvent[0];
-                _eventLoader.BeginLoadState(this, _nextEventNumber, freeSlots, NotifyReadCompleted);
+                _eventLoader.BeginLoadState(this, _nextEventNumber, freeSlots, HandleReadEvents);
                 return true;
             }
             return false;

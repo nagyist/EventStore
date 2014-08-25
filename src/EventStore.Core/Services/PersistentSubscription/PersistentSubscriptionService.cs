@@ -17,6 +17,7 @@ namespace EventStore.Core.Services.PersistentSubscription
                                         IHandle<SystemMessage.BecomeShuttingDown>,
                                         IHandle<TcpMessage.ConnectionClosed>,
                                         IHandle<SystemMessage.BecomeMaster>,
+                                        IHandle<SystemMessage.StateChangeMessage>,
                                         IHandle<ClientMessage.ConnectToPersistentSubscription>,
                                         IHandle<StorageMessage.EventCommitted>,
                                         IHandle<ClientMessage.UnsubscribeFromStream>,
@@ -41,6 +42,7 @@ namespace EventStore.Core.Services.PersistentSubscription
         private readonly IPersistentSubscriptionEventLoader _eventLoader;
         private PersistentSubscriptionConfig _config = new PersistentSubscriptionConfig();
         private bool _started = false;
+        private VNodeState _state;
 
         public PersistentSubscriptionService(IQueuedHandler queuedHandler, IReadIndex readIndex, IODispatcher ioDispatcher)
         {
@@ -53,7 +55,6 @@ namespace EventStore.Core.Services.PersistentSubscription
             _ioDispatcher = ioDispatcher;
             _checkpointReader = new PersistentSubscriptionCheckpointReader(_ioDispatcher);
             _eventLoader = new PersistentSubscriptionEventLoader(_ioDispatcher);
-            InitToEmpty();
         }
 
         public void InitToEmpty()
@@ -62,14 +63,38 @@ namespace EventStore.Core.Services.PersistentSubscription
             _subscriptionsById = new Dictionary<string, PersistentSubscription>(); 
         }
 
+        public void Handle(SystemMessage.StateChangeMessage message)
+        {
+            _state = message.State;
+
+            if (message.State != VNodeState.Master)
+            {
+                ShutdownSubscriptions();
+                Stop();
+            }
+        }
+
+        public void Handle(SystemMessage.BecomeMaster message)
+        {
+            InitToEmpty();
+            LoadConfiguration(Start);
+        }
+
+
         public void Handle(SystemMessage.BecomeShuttingDown message)
         {
+            ShutdownSubscriptions();
             Stop();
+            _queuedHandler.RequestStop();
+        }
+
+        private void ShutdownSubscriptions()
+        {
+            if (_subscriptionsById == null) return;
             foreach (var subscription in _subscriptionsById.Values)
             {
                 subscription.Shutdown();
             }
-            _queuedHandler.RequestStop();
         }
 
         private void Start()
@@ -202,51 +227,17 @@ namespace EventStore.Core.Services.PersistentSubscription
             {
                 subscription.RemoveClientByCorrelationId(correlationId, sendDropNotification);
             }
-            CleanUpDeadSubscriptions();
         }
 
         public void Handle(TcpMessage.ConnectionClosed message)
         {
-            if (!_started) return;
+            //TODO CC make a map for this
+            Log.Debug("Lost connection from " + message.Connection.RemoteEndPoint);
+            if (_subscriptionsById == null) return; //havn't built yet.
             foreach (var subscription in _subscriptionsById.Values)
             {
                 subscription.RemoveClientByConnectionId(message.Connection.ConnectionId);
             }
-            CleanUpDeadSubscriptions();
-        }
-
-        private void CleanUpDeadSubscriptions()
-        {/*
-            var deadSubscriptions = _subscriptionsById.Values.Where(x => !x.HasAnyClients).ToList();
-            foreach (var deadSubscription in deadSubscriptions)
-            {
-                _subscriptionsById.Remove(deadSubscription.SubscriptionId);
-                Log.Debug("Subscription {0} has no more connected clients. Removing. ", deadSubscription.SubscriptionId);
-            }
-
-            List<string> subscriptionGroupsToRemove = null;
-            foreach (var subscriptionGroup in _subscriptionTopics)
-            {
-                var subscriptions = subscriptionGroup.Value;
-                foreach (var deadSubscription in deadSubscriptions)
-                {
-                    subscriptions.Remove(deadSubscription);
-                }
-                if (subscriptions.Count == 0) // schedule removal of list instance
-                {
-                    if (subscriptionGroupsToRemove == null)
-                        subscriptionGroupsToRemove = new List<string>();
-                    subscriptionGroupsToRemove.Add(subscriptionGroup.Key);
-                }
-            }
-            if (subscriptionGroupsToRemove != null)
-            {
-                for (int i = 0, n = subscriptionGroupsToRemove.Count; i < n; ++i)
-                {
-                    _subscriptionTopics.Remove(subscriptionGroupsToRemove[i]);
-                }
-            }
-          */
         }
 
         public void Handle(ClientMessage.ConnectToPersistentSubscription message)
@@ -420,11 +411,6 @@ namespace EventStore.Core.Services.PersistentSubscription
             {
                 CreateSubscriptionGroup(sub.Stream, sub.Group, sub.ResolveLinkTos);
             }
-        }
-
-        public void Handle(SystemMessage.BecomeMaster message)
-        {
-            LoadConfiguration(Start);
         }
 
         public void Handle(MonitoringMessage.GetPersistentSubscriptionStats message)

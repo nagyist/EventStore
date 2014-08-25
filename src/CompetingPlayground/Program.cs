@@ -10,8 +10,8 @@ namespace CompetingPlayground
 {
     class Program
     {
-        private static readonly string Stream = Guid.NewGuid().ToString();
-        private static readonly string SubName = Guid.NewGuid().ToString();
+        private static readonly string Stream = "greg";
+        private static readonly string SubName = "greG";
         static void Main(string[] args)
         {
             BasicTest();
@@ -23,8 +23,6 @@ namespace CompetingPlayground
             using (var connection = EventStoreConnection.Create(endpoint, "foo"))
             {
                 connection.ConnectAsync().Wait();
-                
-                WriteEvents(connection);
                 
                 CreateSubscription(connection, SubName);
                 var sub = ConnectToSubscription(connection, "sub1");
@@ -49,7 +47,7 @@ namespace CompetingPlayground
                         Console.WriteLine(name + "received: " + ev.OriginalEventNumber);
                 },
                 (sub, ev, ex) => Console.WriteLine(name + "sub dropped " + ev),
-                bufferSize: 20, autoAck: true);
+                bufferSize: 200, autoAck: true);
         }
 
         private static void WriteEvents(IEventStoreConnection connection)

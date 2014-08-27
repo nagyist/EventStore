@@ -55,6 +55,8 @@
     <Compile Include="Core\GossipSeedEndPointDiscoverer.cs" />
     <Compile Include="Core\NodeEndPoints.cs" />
     <Compile Include="GossipSeed.cs" />
+    <Compile Include="PersistentSubscriptionSettings.cs" />
+    <Compile Include="PersistentSubscriptionSettingsBuilder.cs" />
     <Compile Include="StreamCheckpoint.cs" />
     <Compile Include="ClientAuthenticationFailedEventArgs.cs" />
     <Compile Include="ClientErrorEventArgs.cs" />

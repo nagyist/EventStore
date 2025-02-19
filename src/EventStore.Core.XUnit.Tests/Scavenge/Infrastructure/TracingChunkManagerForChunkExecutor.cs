@@ -1,30 +1,45 @@
-﻿using EventStore.Core.TransactionLog.Scavenging;
+// Copyright (c) Kurrent, Inc and/or licensed to Kurrent, Inc under one or more agreements.
+// Kurrent, Inc licenses this file to you under the Kurrent License v1 (see LICENSE.md).
 
-namespace EventStore.Core.XUnit.Tests.Scavenge {
-	public class TracingChunkManagerForChunkExecutor<TStreamId, TRecord> :
-		IChunkManagerForChunkExecutor<TStreamId, TRecord> {
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using EventStore.Core.TransactionLog.Chunks.TFChunk;
+using EventStore.Core.TransactionLog.Scavenging.Interfaces;
 
-		private readonly IChunkManagerForChunkExecutor<TStreamId, TRecord> _wrapped;
-		private readonly Tracer _tracer;
+namespace EventStore.Core.XUnit.Tests.Scavenge.Infrastructure;
 
-		public TracingChunkManagerForChunkExecutor(
-			IChunkManagerForChunkExecutor<TStreamId, TRecord> wrapped, Tracer tracer) {
+public class TracingChunkManagerForChunkExecutor<TStreamId, TRecord> :
+	IChunkManagerForChunkExecutor<TStreamId, TRecord> {
 
-			_wrapped = wrapped;
-			_tracer = tracer;
-		}
+	private readonly IChunkManagerForChunkExecutor<TStreamId, TRecord> _wrapped;
+	private readonly HashSet<int> _remoteChunks;
+	private readonly Tracer _tracer;
 
-		public IChunkWriterForExecutor<TStreamId, TRecord> CreateChunkWriter(
-			IChunkReaderForExecutor<TStreamId, TRecord> sourceChunk) {
+	public TracingChunkManagerForChunkExecutor(
+		IChunkManagerForChunkExecutor<TStreamId, TRecord> wrapped,
+		HashSet<int> remoteChunks,
+		Tracer tracer) {
 
-			return new TracingChunkWriterForExecutor<TStreamId, TRecord>(
-				_wrapped.CreateChunkWriter(sourceChunk),
-				_tracer);
-		}
+		_wrapped = wrapped;
+		_remoteChunks = remoteChunks;
+		_tracer = tracer;
+	}
 
-		public IChunkReaderForExecutor<TStreamId, TRecord> GetChunkReaderFor(long position) {
-			var reader = _wrapped.GetChunkReaderFor(position);
-			return new TrackingChunkReaderForExecutor<TStreamId, TRecord>(reader, _tracer);
-		}
+	public IChunkFileSystem FileSystem => _wrapped.FileSystem;
+
+	public async ValueTask<IChunkWriterForExecutor<TStreamId, TRecord>> CreateChunkWriter(
+		IChunkReaderForExecutor<TStreamId, TRecord> sourceChunk,
+		CancellationToken token) {
+
+		return new TracingChunkWriterForExecutor<TStreamId, TRecord>(
+			await _wrapped.CreateChunkWriter(sourceChunk, token),
+			_tracer);
+	}
+
+	public IChunkReaderForExecutor<TStreamId, TRecord> GetChunkReaderFor(long position) {
+		var reader = _wrapped.GetChunkReaderFor(position);
+		var isRemote = _remoteChunks.Contains(reader.ChunkStartNumber);
+		return new TrackingChunkReaderForExecutor<TStreamId, TRecord>(reader, isRemote, _tracer);
 	}
 }

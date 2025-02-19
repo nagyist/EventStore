@@ -1,28 +1,32 @@
-﻿using System;
+// Copyright (c) Kurrent, Inc and/or licensed to Kurrent, Inc under one or more agreements.
+// Kurrent, Inc licenses this file to you under the Kurrent License v1 (see LICENSE.md).
+
+using System;
 using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Index;
-using EventStore.Core.TransactionLog.Scavenging;
+using EventStore.Core.TransactionLog.Scavenging.Interfaces;
 
-namespace EventStore.Core.XUnit.Tests.Scavenge {
-	public class AdHocIndexScavengerInterceptor : IIndexScavenger {
-		private readonly IIndexScavenger _wrapped;
-		private readonly Func<Func<IndexEntry, bool>, Func<IndexEntry, bool>> _f;
+namespace EventStore.Core.XUnit.Tests.Scavenge.Infrastructure;
 
-		public AdHocIndexScavengerInterceptor(
-			IIndexScavenger wrapped,
-			Func<Func<IndexEntry, bool>, Func<IndexEntry, bool>> f) {
+public class AdHocIndexScavengerInterceptor : IIndexScavenger {
+	private readonly IIndexScavenger _wrapped;
+	private readonly Func<Func<IndexEntry, CancellationToken, ValueTask<bool>>, Func<IndexEntry, CancellationToken, ValueTask<bool>>> _f;
 
-			_wrapped = wrapped;
-			_f = f;
-		}
+	public AdHocIndexScavengerInterceptor(
+		IIndexScavenger wrapped,
+		Func<Func<IndexEntry, CancellationToken, ValueTask<bool>>, Func<IndexEntry, CancellationToken, ValueTask<bool>>> f) {
 
-		public void ScavengeIndex(
-			long scavengePoint,
-			Func<IndexEntry, bool> shouldKeep,
-			IIndexScavengerLog log,
-			CancellationToken cancellationToken) {
+		_wrapped = wrapped;
+		_f = f;
+	}
 
-			_wrapped.ScavengeIndex(scavengePoint, _f(shouldKeep), log, cancellationToken);
-		}
+	public ValueTask ScavengeIndex(
+		long scavengePoint,
+		Func<IndexEntry, CancellationToken, ValueTask<bool>> shouldKeep,
+		IIndexScavengerLog log,
+		CancellationToken cancellationToken) {
+
+		return _wrapped.ScavengeIndex(scavengePoint,_f(shouldKeep), log, cancellationToken);
 	}
 }

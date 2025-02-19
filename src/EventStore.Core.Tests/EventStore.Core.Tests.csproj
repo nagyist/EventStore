@@ -1,39 +1,40 @@
-<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFramework>net6.0</TargetFramework>
 		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<Platforms>x64;ARM64</Platforms>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="EventStore.Client" Version="21.2.0" />
-		<PackageReference Include="GitHubActionsTestLogger" Version="2.0.1" />
-		<PackageReference Include="Grpc.Core" Version="2.46.5" />
-		<PackageReference Include="Grpc.Net.Client" Version="2.49.0" />
-		<PackageReference Include="Microsoft.AspNetCore.TestHost" Version="6.0.9" />
+		<PackageReference Include="FluentAssertions" Version="6.12.0" />
+		<PackageReference Include="GitHubActionsTestLogger" Version="2.3.3" />
+		<PackageReference Include="Grpc.Core" Version="2.46.6" />
+		<PackageReference Include="Grpc.Net.Client" Version="2.64.0" />
+		<PackageReference Include="Microsoft.AspNetCore.TestHost" Version="8.0.0" />
 		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.2" />
-		<PackageReference Include="NUnit" Version="3.13.3" />
-		<PackageReference Include="NUnit3TestAdapter" Version="4.2.1" />
-		<PackageReference Include="CompareNETObjects" Version="4.78.0" />
-		<PackageReference Include="Google.Protobuf" Version="3.21.6" />
-		<PackageReference Include="Grpc.Tools" Version="2.49.1">
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+		<PackageReference Include="NUnit" Version="3.14.0" />
+		<PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
+		<PackageReference Include="Microsoft.OpenApi.Readers" Version="1.6.23" />
+		<PackageReference Include="Google.Protobuf" Version="3.27.2" />
+		<PackageReference Include="Grpc.Tools" Version="2.65.0">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
 		</PackageReference>
+		<PackageReference Include="Scrutor" Version="5.0.2" />
+		<PackageReference Include="Serilog.Sinks.InMemory" Version="0.11.0" />
+		<PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
 
 	</ItemGroup>
 	<ItemGroup>
-		<ProjectReference Include="..\EventStore.ClusterNode\EventStore.ClusterNode.csproj" />
 		<ProjectReference Include="..\EventStore.Common\EventStore.Common.csproj" />
 		<ProjectReference Include="..\EventStore.Core\EventStore.Core.csproj" />
+		<ProjectReference Include="..\EventStore.PluginHosting\EventStore.PluginHosting.csproj" />
 		<ProjectReference Include="..\EventStore.Transport.Http\EventStore.Transport.Http.csproj" />
 		<ProjectReference Include="..\EventStore.Transport.Tcp\EventStore.Transport.Tcp.csproj" />
 	</ItemGroup>
 	<ItemGroup>
-		<EmbeddedResource Include="Services\Transport\Tcp\test_certificates\**\*.pem" />
-		<EmbeddedResource Include="Services\Transport\Tcp\test_certificates\**\*.p12" />
+		<EmbeddedResource Include="Services\Transport\Tcp\test_certificates\**\*.crt" />
+		<EmbeddedResource Include="Services\Transport\Tcp\test_certificates\**\*.key" />
 		<EmbeddedResource Remove="FakePlugin\**" />
 	</ItemGroup>
 	<ItemGroup>
@@ -47,18 +48,19 @@
 		</None>
 	</ItemGroup>
 	<ItemGroup>
-		<Protobuf Include="..\Protos\Grpc\code.proto" Link="Protos\code.proto" GrpcServices="Client" ProtoRoot="../Protos/Grpc" Access="Internal" />
-		<Protobuf Include="..\Protos\Grpc\gossip.proto" Link="Protos\gossip.proto" GrpcServices="Client" ProtoRoot="../Protos/Grpc" Access="Internal" />
-		<Protobuf Include="..\Protos\Grpc\operations.proto" Link="Protos\operations.proto" GrpcServices="Client" ProtoRoot="../Protos/Grpc" Access="Internal" />
-		<Protobuf Include="..\Protos\Grpc\persistent.proto" Link="Protos\persistent.proto" GrpcServices="Client" ProtoRoot="../Protos/Grpc" Access="Internal" />
-		<Protobuf Include="..\Protos\Grpc\status.proto" Link="Protos\status.proto" GrpcServices="Client" ProtoRoot="../Protos/Grpc" Access="Internal" />
-		<Protobuf Include="..\Protos\Grpc\streams.proto" Link="Protos\streams.proto" GrpcServices="Client" ProtoRoot="../Protos/Grpc" Access="Internal" />
-		<Protobuf Include="..\Protos\Grpc\users.proto" Link="Protos\users.proto" GrpcServices="Client" ProtoRoot="../Protos/Grpc" Access="Internal" />
-		<Protobuf Include="..\Protos\Grpc\monitoring.proto" Link="Protos\monitoring.proto" GrpcServices="Client" ProtoRoot="../Protos/Grpc" Access="Internal" />
-		<Protobuf Include="..\Protos\Grpc\serverfeatures.proto" Link="Protos\serverfeatures.proto" GrpcServices="Client" ProtoRoot="../Protos/Grpc" Access="Internal" />
-		<Protobuf Include="..\Protos\Grpc\redaction.proto" Link="Protos\redaction.proto" GrpcServices="Client" ProtoRoot="../Protos/Grpc" Access="Internal" />
 		<None Include="Resources\es-tile.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+	<ItemGroup>
+		<None Include="swagger.yaml">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+	<ItemGroup>
+		<None Include="..\EventStore.Common\Utils\version.properties">
+			<Link>version.properties</Link>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>
 	<ItemGroup>
@@ -66,5 +68,4 @@
 		<Compile Remove="FakePlugin\**" />
 		<Content Include="FakePlugin\**" CopyToOutputDirectory="Always" />
 	</ItemGroup>
-
 </Project>

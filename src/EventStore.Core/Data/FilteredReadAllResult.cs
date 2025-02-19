@@ -1,5 +1,8 @@
-namespace EventStore.Core.Data
-{
+// Copyright (c) Kurrent, Inc and/or licensed to Kurrent, Inc under one or more agreements.
+// Kurrent, Inc licenses this file to you under the Kurrent License v1 (see LICENSE.md).
+
+namespace EventStore.Core.Data;
+
     public enum FilteredReadAllResult
     {
         Success = 0,
@@ -7,5 +10,5 @@ namespace EventStore.Core.Data
         Error = 2,
         AccessDenied = 3,
         Expired = 4,
+        InvalidPosition = 5,
     }
-}

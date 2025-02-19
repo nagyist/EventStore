@@ -1,27 +1,31 @@
-﻿using Microsoft.Data.Sqlite;
+// Copyright (c) Kurrent, Inc and/or licensed to Kurrent, Inc under one or more agreements.
+// Kurrent, Inc licenses this file to you under the Kurrent License v1 (see LICENSE.md).
 
-namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
-	public class SqliteTransactionFactory : IInitializeSqliteBackend, ITransactionFactory<SqliteTransaction> {
-		private SqliteBackend _sqliteBackend;
+using EventStore.Core.TransactionLog.Scavenging.Interfaces;
+using Microsoft.Data.Sqlite;
 
-		public void Initialize(SqliteBackend sqlite) {
-			_sqliteBackend = sqlite;
-		}
+namespace EventStore.Core.TransactionLog.Scavenging.Sqlite;
 
-		public SqliteTransaction Begin() {
-			return _sqliteBackend.BeginTransaction();
-		}
+public class SqliteTransactionFactory : IInitializeSqliteBackend, ITransactionFactory<SqliteTransaction> {
+	private SqliteBackend _sqliteBackend;
 
-		public void Rollback(SqliteTransaction transaction) {
-			transaction.Rollback();
-			transaction.Dispose();
-			_sqliteBackend.ClearTransaction();
-		}
+	public void Initialize(SqliteBackend sqlite) {
+		_sqliteBackend = sqlite;
+	}
 
-		public void Commit(SqliteTransaction transaction) {
-			transaction.Commit();
-			transaction.Dispose();
-			_sqliteBackend.ClearTransaction();
-		}
+	public SqliteTransaction Begin() {
+		return _sqliteBackend.BeginTransaction();
+	}
+
+	public void Rollback(SqliteTransaction transaction) {
+		transaction.Rollback();
+		transaction.Dispose();
+		_sqliteBackend.ClearTransaction();
+	}
+
+	public void Commit(SqliteTransaction transaction) {
+		transaction.Commit();
+		transaction.Dispose();
+		_sqliteBackend.ClearTransaction();
 	}
 }

@@ -20,18 +20,17 @@ jobs:
     name: ci/github/build-${{ inputs.os }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
-    - shell: bash
-      run: |
-        git fetch --prune --unshallow
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     - name: Install netcoreapp3.1
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 3.1.x
-    - name: Install net6.0
+    - name: Install net8.0
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: 8.0.x
     - name: Clear Nuget Cache
       shell: powershell
       if: inputs.os == 'windows-2019'
@@ -47,7 +46,7 @@ jobs:
     - name: Verify Build
       shell: bash
       run: |
-        dotnet run --project src/EventStore.ClusterNode --configuration ${{ matrix.configuration }} -- --insecure --what-if
+        dotnet run --project src/KurrentDB --configuration ${{ matrix.configuration }} -- --insecure --what-if
     - name: Run Tests
       shell: bash
       run: |
@@ -60,13 +59,13 @@ jobs:
       run: |
         echo $(find ./test-results -name "*.html" | xargs cat) > test-results.html
     - name: Publish Test Results (HTML)
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         path: test-results.html
         name: test-results-${{ matrix.configuration }}-${{ inputs.os }}.html
     - name: Publish Test Results (All)
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: test-results-${{ matrix.configuration }}-${{ inputs.os }}

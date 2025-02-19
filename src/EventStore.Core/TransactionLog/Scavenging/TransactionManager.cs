@@ -1,59 +1,63 @@
-﻿using System;
+// Copyright (c) Kurrent, Inc and/or licensed to Kurrent, Inc under one or more agreements.
+// Kurrent, Inc licenses this file to you under the Kurrent License v1 (see LICENSE.md).
 
-namespace EventStore.Core.TransactionLog.Scavenging {
-	// This makes sure we dont accidentally start trying to nest transactions or begin them concurrently
-	// and facilitates committing the open transaction with a checkpoint
-	public class TransactionManager<TTransaction> : ITransactionManager {
-		private readonly ITransactionFactory<TTransaction> _factory;
-		private readonly IScavengeMap<Unit, ScavengeCheckpoint> _storage;
-		private Action _onRollback;
-		private bool _began;
-		private TTransaction _transaction;
+using System;
+using EventStore.Core.TransactionLog.Scavenging.Interfaces;
 
-		public TransactionManager(
-			ITransactionFactory<TTransaction> factory,
-			IScavengeMap<Unit, ScavengeCheckpoint> storage) {
+namespace EventStore.Core.TransactionLog.Scavenging;
 
-			_factory = factory;
-			_storage = storage;
-		}
+// This makes sure we dont accidentally start trying to nest transactions or begin them concurrently
+// and facilitates committing the open transaction with a checkpoint
+public class TransactionManager<TTransaction> : ITransactionManager {
+	private readonly ITransactionFactory<TTransaction> _factory;
+	private readonly IScavengeMap<Unit, ScavengeCheckpoint> _storage;
+	private Action _onRollback;
+	private bool _began;
+	private TTransaction _transaction;
 
-		public void RegisterOnRollback(Action onRollback) {
-			if (_onRollback != null)
-				throw new InvalidOperationException();
+	public TransactionManager(
+		ITransactionFactory<TTransaction> factory,
+		IScavengeMap<Unit, ScavengeCheckpoint> storage) {
 
-			_onRollback = onRollback;
-		}
+		_factory = factory;
+		_storage = storage;
+	}
 
-		public void UnregisterOnRollback() {
-			_onRollback = null;
-		}
+	public void RegisterOnRollback(Action onRollback) {
+		if (_onRollback != null)
+			throw new InvalidOperationException();
 
-		public void Begin() {
-			if (_began)
-				throw new InvalidOperationException("Cannot begin a transaction that has already begun.");
+		_onRollback = onRollback;
+	}
 
-			_transaction = _factory.Begin();
-			_began = true;
-		}
+	public void UnregisterOnRollback() {
+		_onRollback = null;
+	}
 
-		public void Rollback() {
-			if (!_began)
-				throw new InvalidOperationException("Cannot rollback a transaction that has not begun.");
+	public void Begin() {
+		if (_began)
+			throw new InvalidOperationException("Cannot begin a transaction that has already begun.");
 
-			_factory.Rollback(_transaction);
-			_onRollback?.Invoke();
-			_began = false;
-		}
+		_transaction = _factory.Begin();
+		_began = true;
+	}
 
-		public void Commit(ScavengeCheckpoint checkpoint) {
-			if (!_began)
-				throw new InvalidOperationException("Cannot commit a transaction that has not begun.");
+	public void Rollback() {
+		if (!_began)
+			throw new InvalidOperationException("Cannot rollback a transaction that has not begun.");
 
-			_storage[Unit.Instance] = checkpoint;
+		_factory.Rollback(_transaction);
+		_onRollback?.Invoke();
+		_began = false;
+	}
 
-			_factory.Commit(_transaction);
-			_began = false;
-		}
+	public void Commit(ScavengeCheckpoint checkpoint) {
+		if (!_began)
+			throw new InvalidOperationException("Cannot commit a transaction that has not begun.");
+
+		_storage[Unit.Instance] = checkpoint;
+
+		_factory.Commit(_transaction);
+		_began = false;
 	}
 }

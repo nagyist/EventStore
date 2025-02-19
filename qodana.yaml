@@ -1,0 +1,63 @@
+version: "1.0"
+
+linter: jetbrains/qodana-dotnet:2024.1
+
+dotnet:
+  solution: src/EventStore.sln
+
+exclude:
+  - name: RedundantTypeArgumentsOfMethod
+
+#
+# License Audit
+#
+
+licenseRules:
+  - keys:
+      - "PROPRIETARY-LICENSE"
+    allowed:
+      - "Kurrent-1.0"
+
+customDependencies:
+  # System.UriTemplate (source copied under src/EventStore.NETCore.Compatibility from .NET 4.8 with some modifications)
+  - name: "System.UriTemplate"
+    version: ""
+    licenses:
+      - key: "MIT"
+
+# Manually specify the licenses of the following packages
+dependencyOverrides:
+  # not automatically detectable
+  - name: "EventStore.Plugins"
+    version: "25.2.5"
+    licenses:
+      - key: "Kurrent-1.0"
+        url: "https://github.com/EventStore/EventStore/blob/master/LICENSE.md"
+
+  # not automatically detectable, but the MIT license is in the nuget package
+  - name: "NETStandard.Library"
+    version: "2.0.3"
+    licenses:
+      - key: "MIT"
+        url: "https://nuget.info/packages/NETStandard.Library/2.0.3"
+
+  # Qodana is detecting this as MS-NET-LIBRARY but the nuspec in the nuget package says MIT
+  - name: "Microsoft.Diagnostics.Runtime"
+    version: "2.2.332302"
+    licenses:
+      - key: "MIT"
+        url: "https://www.nuget.org/packages/Microsoft.Diagnostics.Runtime/2.2.332302"
+
+  # the referenced license file is not trivial but appears to imply that this library is MIT
+  - name: "Mono.Posix.NETStandard"
+    version: "1.0.0"
+    licenses:
+      - key: "MIT"
+        url: "https://github.com/mono/mono/blob/main/LICENSE"
+
+  # not automatically detectable
+  - name: "OpenTelemetry.Exporter.Prometheus.AspNetCore"
+    version: "1.11.0-beta.1"
+    licenses:
+      - key: "Apache-2.0"
+        url: "https://github.com/open-telemetry/opentelemetry-dotnet/blob/main/LICENSE.TXT"

@@ -1,12 +1,16 @@
-﻿using System;
+// Copyright (c) Kurrent, Inc and/or licensed to Kurrent, Inc under one or more agreements.
+// Kurrent, Inc licenses this file to you under the Kurrent License v1 (see LICENSE.md).
+
+using System;
 using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.Tests;
 using EventStore.Core.Tests.TransactionLog.Scavenging.Helpers;
 using EventStore.Core.TransactionLog.Scavenging;
+using EventStore.Core.XUnit.Tests.Scavenge.Infrastructure;
 using EventStore.Core.XUnit.Tests.Scavenge.Sqlite;
 using Xunit;
-using static EventStore.Core.XUnit.Tests.Scavenge.StreamMetadatas;
+using static EventStore.Core.XUnit.Tests.Scavenge.Infrastructure.StreamMetadatas;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 

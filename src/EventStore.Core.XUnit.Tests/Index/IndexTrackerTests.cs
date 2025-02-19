@@ -1,11 +1,14 @@
+// Copyright (c) Kurrent, Inc and/or licensed to Kurrent, Inc under one or more agreements.
+// Kurrent, Inc licenses this file to you under the Kurrent License v1 (see LICENSE.md).
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Linq;
 using EventStore.Core.Index;
-using EventStore.Core.Telemetry;
+using EventStore.Core.Metrics;
 using EventStore.Core.TransactionLog.LogRecords;
-using EventStore.Core.XUnit.Tests.Telemetry;
+using EventStore.Core.XUnit.Tests.Metrics;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Index;
@@ -41,8 +44,8 @@ public class IndexTrackerTests : IDisposable {
 	}
 
 	private static PrepareLogRecord CreatePrepare() {
-		return new PrepareLogRecord(42, Guid.NewGuid(), Guid.NewGuid(), 42, 42, "tests", 42, DateTime.Now,
-			PrepareFlags.Data, "type-test", Array.Empty<byte>(), Array.Empty<byte>());
+		return new PrepareLogRecord(42, Guid.NewGuid(), Guid.NewGuid(), 42, 42, "tests", null, 42, DateTime.Now,
+			PrepareFlags.Data, "type-test", null, Array.Empty<byte>(), Array.Empty<byte>());
 	}
 
 	private void AssertMeasurements(long expectedEventsWritten) {

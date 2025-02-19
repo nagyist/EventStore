@@ -2167,8 +2167,13 @@
               },
               {
                 "id": 5,
-                "name": "is_completed_chunk",
+                "name": "is_scavenged_chunk",
                 "type": "bool"
+              },
+              {
+                "id": 6,
+                "name": "transform_header_bytes",
+                "type": "bytes"
               }
             ]
           },
@@ -5287,9 +5292,25 @@
                 "id": 7,
                 "name": "last_all_stream_position",
                 "type": "AllStreamPosition"
+              },
+              {
+                "id": 8,
+                "name": "caught_up",
+                "type": "CaughtUp"
+              },
+              {
+                "id": 9,
+                "name": "fell_behind",
+                "type": "FellBehind"
               }
             ],
             "messages": [
+              {
+                "name": "CaughtUp"
+              },
+              {
+                "name": "FellBehind"
+              },
               {
                 "name": "ReadEvent",
                 "fields": [

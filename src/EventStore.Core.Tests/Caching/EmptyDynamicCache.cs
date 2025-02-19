@@ -1,20 +1,23 @@
-﻿using EventStore.Core.Caching;
+// Copyright (c) Kurrent, Inc and/or licensed to Kurrent, Inc under one or more agreements.
+// Kurrent, Inc licenses this file to you under the Kurrent License v1 (see LICENSE.md).
 
-namespace EventStore.Core.Tests.Caching {
-	public class EmptyDynamicCache : IDynamicCache {
-		public static EmptyDynamicCache Instance { get; } = new();
-		public string Name => nameof(EmptyDynamicCache);
-		public long Capacity { get; private set; }
+using EventStore.Core.Caching;
 
-		public void SetCapacity(long capacity) {
-			Capacity = capacity;
-		}
+namespace EventStore.Core.Tests.Caching;
 
-		public void ResetFreedSize() {
-		}
+public class EmptyDynamicCache : IDynamicCache {
+	public static EmptyDynamicCache Instance { get; } = new();
+	public string Name => nameof(EmptyDynamicCache);
+	public long Capacity { get; private set; }
 
-		public long Size => 0;
-		public long Count => 0;
-		public long FreedSize => 0;
+	public void SetCapacity(long capacity) {
+		Capacity = capacity;
 	}
+
+	public void ResetFreedSize() {
+	}
+
+	public long Size => 0;
+	public long Count => 0;
+	public long FreedSize => 0;
 }

@@ -1,38 +1,43 @@
-﻿namespace EventStore.Core.TransactionLog.Scavenging {
-	public class InMemoryChunkWeightScavengeMap :
-		InMemoryScavengeMap<int, float>,
-		IChunkWeightScavengeMap {
+// Copyright (c) Kurrent, Inc and/or licensed to Kurrent, Inc under one or more agreements.
+// Kurrent, Inc licenses this file to you under the Kurrent License v1 (see LICENSE.md).
 
-		public bool AllWeightsAreZero() {
-			foreach (var kvp in AllRecords()) {
-				if (kvp.Value != 0) {
-					return false;
-				}
-			}
-			return true;
-		}
+using EventStore.Core.TransactionLog.Scavenging.Interfaces;
 
-		public void IncreaseWeight(int logicalChunkNumber, float extraWeight) {
-			if (!TryGetValue(logicalChunkNumber, out var weight))
-				weight = 0;
-			this[logicalChunkNumber] = weight + extraWeight;
-		}
+namespace EventStore.Core.TransactionLog.Scavenging.InMemory;
 
-		public void ResetChunkWeights(int startLogicalChunkNumber, int endLogicalChunkNumber) {
-			for (var i = startLogicalChunkNumber; i <= endLogicalChunkNumber; i++) {
-				TryRemove(i, out _);
+public class InMemoryChunkWeightScavengeMap :
+	InMemoryScavengeMap<int, float>,
+	IChunkWeightScavengeMap {
+
+	public bool AllWeightsAreZero() {
+		foreach (var kvp in AllRecords()) {
+			if (kvp.Value != 0) {
+				return false;
 			}
 		}
+		return true;
+	}
 
-		public float SumChunkWeights(int startLogicalChunkNumber, int endLogicalChunkNumber) {
-			var totalWeight = 0f;
-			for (var i = startLogicalChunkNumber; i <= endLogicalChunkNumber; i++) {
-				if (TryGetValue(i, out var weight)) {
-					totalWeight += weight;
-				}
-			}
+	public void IncreaseWeight(int logicalChunkNumber, float extraWeight) {
+		if (!TryGetValue(logicalChunkNumber, out var weight))
+			weight = 0;
+		this[logicalChunkNumber] = weight + extraWeight;
+	}
 
-			return totalWeight;
+	public void ResetChunkWeights(int startLogicalChunkNumber, int endLogicalChunkNumber) {
+		for (var i = startLogicalChunkNumber; i <= endLogicalChunkNumber; i++) {
+			TryRemove(i, out _);
 		}
+	}
+
+	public float SumChunkWeights(int startLogicalChunkNumber, int endLogicalChunkNumber) {
+		var totalWeight = 0f;
+		for (var i = startLogicalChunkNumber; i <= endLogicalChunkNumber; i++) {
+			if (TryGetValue(i, out var weight)) {
+				totalWeight += weight;
+			}
+		}
+
+		return totalWeight;
 	}
 }

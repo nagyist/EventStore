@@ -1,4 +1,7 @@
-﻿using System;
+// Copyright (c) Kurrent, Inc and/or licensed to Kurrent, Inc under one or more agreements.
+// Kurrent, Inc licenses this file to you under the Kurrent License v1 (see LICENSE.md).
+
+using System;
 using System.Collections.Generic;
 using EventStore.Core.Tests.Helpers;
 using EventStore.Projections.Core.Messages;
@@ -8,6 +11,7 @@ using EventStore.Projections.Core.Services.Processing;
 using NUnit.Framework;
 using EventStore.Common.Utils;
 using EventStore.Core.Tests;
+using EventStore.Projections.Core.Services.Processing.Checkpointing;
 using Newtonsoft.Json.Linq;
 
 namespace EventStore.Projections.Core.Tests.Services.projections_system.updating_projections {

@@ -1,16 +1,25 @@
-﻿namespace EventStore.Core.TransactionLog.Scavenging {
-	public class InMemoryTransactionFactory : ITransactionFactory<int> {
-		public InMemoryTransactionFactory() {
-		}
+// Copyright (c) Kurrent, Inc and/or licensed to Kurrent, Inc under one or more agreements.
+// Kurrent, Inc licenses this file to you under the Kurrent License v1 (see LICENSE.md).
 
-		public int Begin() {
-			return 5;
-		}
+using System;
+using EventStore.Core.TransactionLog.Scavenging.Interfaces;
 
-		public void Commit(int transasction) {
-		}
+namespace EventStore.Core.TransactionLog.Scavenging.InMemory;
 
-		public void Rollback(int transaction) {
-		}
+public class InMemoryTransactionFactory : ITransactionFactory<int> {
+	int _transactionNumber;
+
+	public InMemoryTransactionFactory() {
+	}
+
+	public int Begin() {
+		return _transactionNumber++;
+	}
+
+	public void Commit(int transasction) {
+	}
+
+	public void Rollback(int transaction) {
+		throw new NotImplementedException();
 	}
 }

@@ -1,37 +1,41 @@
-﻿using System;
+// Copyright (c) Kurrent, Inc and/or licensed to Kurrent, Inc under one or more agreements.
+// Kurrent, Inc licenses this file to you under the Kurrent License v1 (see LICENSE.md).
+
+using System;
 using EventStore.Core.TransactionLog.Scavenging;
+using EventStore.Core.TransactionLog.Scavenging.Interfaces;
 
-namespace EventStore.Core.XUnit.Tests.Scavenge {
-	public class AdHocTransactionManager : ITransactionManager {
-		private readonly ITransactionManager _wrapped;
-		private readonly Action<Action<ScavengeCheckpoint>, ScavengeCheckpoint> _f;
+namespace EventStore.Core.XUnit.Tests.Scavenge.Infrastructure;
 
-		public AdHocTransactionManager(
-			ITransactionManager wrapped,
-			Action<Action<ScavengeCheckpoint>, ScavengeCheckpoint> f) {
+public class AdHocTransactionManager : ITransactionManager {
+	private readonly ITransactionManager _wrapped;
+	private readonly Action<Action<ScavengeCheckpoint>, ScavengeCheckpoint> _f;
 
-			_wrapped = wrapped;
-			_f = f;
-		}
+	public AdHocTransactionManager(
+		ITransactionManager wrapped,
+		Action<Action<ScavengeCheckpoint>, ScavengeCheckpoint> f) {
 
-		public void RegisterOnRollback(Action onRollback) {
-			_wrapped.RegisterOnRollback(onRollback);
-		}
+		_wrapped = wrapped;
+		_f = f;
+	}
 
-		public void UnregisterOnRollback() {
-			_wrapped.UnregisterOnRollback();
-		}
+	public void RegisterOnRollback(Action onRollback) {
+		_wrapped.RegisterOnRollback(onRollback);
+	}
 
-		public void Begin() {
-			_wrapped.Begin();
-		}
+	public void UnregisterOnRollback() {
+		_wrapped.UnregisterOnRollback();
+	}
 
-		public void Commit(ScavengeCheckpoint checkpoint) {
-			_f(_wrapped.Commit, checkpoint);
-		}
+	public void Begin() {
+		_wrapped.Begin();
+	}
 
-		public void Rollback() {
-			_wrapped.Rollback();
-		}
+	public void Commit(ScavengeCheckpoint checkpoint) {
+		_f(_wrapped.Commit, checkpoint);
+	}
+
+	public void Rollback() {
+		_wrapped.Rollback();
 	}
 }

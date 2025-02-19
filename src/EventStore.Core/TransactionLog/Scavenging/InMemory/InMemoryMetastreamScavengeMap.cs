@@ -1,30 +1,35 @@
-﻿namespace EventStore.Core.TransactionLog.Scavenging {
-	public class InMemoryMetastreamScavengeMap<TKey> :
-		InMemoryScavengeMap<TKey, MetastreamData>,
-		IMetastreamScavengeMap<TKey> {
+// Copyright (c) Kurrent, Inc and/or licensed to Kurrent, Inc under one or more agreements.
+// Kurrent, Inc licenses this file to you under the Kurrent License v1 (see LICENSE.md).
 
-		public void SetTombstone(TKey key) {
-			if (!TryGetValue(key, out var x))
-				x = new MetastreamData();
+using EventStore.Core.TransactionLog.Scavenging.Interfaces;
 
-			this[key] = new MetastreamData(
-				isTombstoned: true,
-				discardPoint: x.DiscardPoint);
-		}
+namespace EventStore.Core.TransactionLog.Scavenging.InMemory;
 
-		public void SetDiscardPoint(TKey key, DiscardPoint discardPoint) {
-			if (!TryGetValue(key, out var x))
-				x = new MetastreamData();
+public class InMemoryMetastreamScavengeMap<TKey> :
+	InMemoryScavengeMap<TKey, MetastreamData>,
+	IMetastreamScavengeMap<TKey> {
 
-			this[key] = new MetastreamData(
-				isTombstoned: x.IsTombstoned,
-				discardPoint: discardPoint);
-		}
+	public void SetTombstone(TKey key) {
+		if (!TryGetValue(key, out var x))
+			x = new MetastreamData();
 
-		public void DeleteAll() {
-			foreach (var kvp in AllRecords()) {
-				TryRemove(kvp.Key, out _);
-			}
+		this[key] = new MetastreamData(
+			isTombstoned: true,
+			discardPoint: x.DiscardPoint);
+	}
+
+	public void SetDiscardPoint(TKey key, DiscardPoint discardPoint) {
+		if (!TryGetValue(key, out var x))
+			x = new MetastreamData();
+
+		this[key] = new MetastreamData(
+			isTombstoned: x.IsTombstoned,
+			discardPoint: discardPoint);
+	}
+
+	public void DeleteAll() {
+		foreach (var kvp in AllRecords()) {
+			TryRemove(kvp.Key, out _);
 		}
 	}
 }

@@ -3,91 +3,536 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### Fixed
-- Improved synchronization during TFChunk disposal [EventStore#3674](https://github.com/EventStore/EventStore/pull/3674)
-- Fix projection progress report. [EventStore#3655](https://github.com/EventStore/EventStore/pull/3655)
-- #3697 FilteredAllSubscription checkpoint now continues to update after becomming live [EventStore#3726](https://github.com/EventStore/EventStore/pull/3726)
-- (EventStore.TestClient) too strict cleanup condition causing a memory leak in rare cases when server becomes unresponsive. [EventStore#3705](https://github.com/EventStore/EventStore/pull/3705)
-- (EventStore.TestClient) Cancelation of current command. [EventStore#3705](https://github.com/EventStore/EventStore/pull/3705)
-- Use a separate IODispatcher for scavenge log [EventStore#3741](https://github.com/EventStore/EventStore/pull/3741)
-- #3486  [EventStore#3752](https://github.com/EventStore/EventStore/pull/3752)
-- Don't require an equals sign when parsing a command line argument followed by an integer [EventStore#3757](https://github.com/EventStore/EventStore/pull/3757)
-- Ignore exceptions when failing to change PTable index file permissions [EventStore#3807](https://github.com/EventStore/EventStore/pull/3807)
-- #2187  [EventStore#3816](https://github.com/EventStore/EventStore/pull/3816)
-- Handle events that have been deleted from (now empty) chunks but not from the index [EventStore#3813](https://github.com/EventStore/EventStore/pull/3813)
-- Compile error caused by conflicting PRs [EventStore#3822](https://github.com/EventStore/EventStore/pull/3822)
-- Compile error caused by conflicting PRs [EventStore#3822](https://github.com/EventStore/EventStore/pull/3822)
-- #3791  [EventStore#3814](https://github.com/EventStore/EventStore/pull/3814)
-- race condition in ManagedProjection code when deleting a projection [EventStore#3812](https://github.com/EventStore/EventStore/pull/3812)
-- projection code used to throw error if projection substreams (e.g. emitted streams, checkpoint streams etc.) did not exist, when deleting projection [EventStore#3812](https://github.com/EventStore/EventStore/pull/3812)
-- Only log that a connection to a persistent subscription has been dropped if there was a subscription running on the TCP connection [EventStore#3824](https://github.com/EventStore/EventStore/pull/3824)
-- Do not change the handlerType of a projection when it is updated [EventStore#3823](https://github.com/EventStore/EventStore/pull/3823)
-- When multiple projection write requests arrive within short-period (create-create, create-delete, delete-create, delete-delete), projection manager used to pick same expected version number for both write requests which caused WrongExpectedVersion error for one of the request [EventStore#3817](https://github.com/EventStore/EventStore/pull/3817)
-- add an error message when user performs an CRUD operation to $all stream using HTTP API [EventStore#3830](https://github.com/EventStore/EventStore/pull/3830)
-
-### Added
-- Source generator for dynamic message type ids [EventStore#3684](https://github.com/EventStore/EventStore/pull/3684)
-- checkpoints metric [EventStore#3685](https://github.com/EventStore/EventStore/pull/3685)
-- metric for tracking the current state of the Node [EventStore#3686](https://github.com/EventStore/EventStore/pull/3686)
-- metric for tracking the current state of the Scavenge [EventStore#3686](https://github.com/EventStore/EventStore/pull/3686)
-- metric for tracking the current state of the Index operations (merge/scavenge) [EventStore#3686](https://github.com/EventStore/EventStore/pull/3686)
-- Histograms for gRPC reads and appends [EventStore#3695](https://github.com/EventStore/EventStore/pull/3695)
-- a process-wide stopwatch for measuring durations [EventStore#3703](https://github.com/EventStore/EventStore/pull/3703)
-- log errors for gRPC write flood. [EventStore#3705](https://github.com/EventStore/EventStore/pull/3705)
-- Implement Init/Rebuild index status report. [EventStore#3707](https://github.com/EventStore/EventStore/pull/3707)
-- Max queue durations over period per queue  [EventStore#3698](https://github.com/EventStore/EventStore/pull/3698)
-- Queue Processing Duration Histograms by Message Type [EventStore#3730](https://github.com/EventStore/EventStore/pull/3730)
-- Improved warning when using an invalid delimiter in gossip seed [EventStore#3757](https://github.com/EventStore/EventStore/pull/3757)
-- Deprecation warnings for UnsafeIgnoreHardDeletes and AlwaysKeepsScavenged [EventStore#3778](https://github.com/EventStore/EventStore/pull/3778)
-- The ability to set default admin and ops passwords on first run of the database [EventStore#3738](https://github.com/EventStore/EventStore/pull/3738)
-- Suggestions for unknown/invalid configuration parameters (#3784) [EventStore#3785](https://github.com/EventStore/EventStore/pull/3785)
-- Inauguration status tracker [EventStore#3699](https://github.com/EventStore/EventStore/pull/3699)
-- Support for unix sockets [EventStore#3713](https://github.com/EventStore/EventStore/pull/3713)
-- APIs for external redaction [EventStore#3713](https://github.com/EventStore/EventStore/pull/3713)
-- default location for trusted root certs [EventStore#3811](https://github.com/EventStore/EventStore/pull/3811)
-- ES version in gossip message between nodes [EventStore#3792](https://github.com/EventStore/EventStore/pull/3792)
-- Every node will monitor versions of other alive nodes; if version mismatch detected in cluster, nodes will log this [EventStore#3792](https://github.com/EventStore/EventStore/pull/3792)
-- "/gossip" endpoint will also have ES version info  [EventStore#3792](https://github.com/EventStore/EventStore/pull/3792)
-- Handle redacted events in AtomPub [EventStore#3793](https://github.com/EventStore/EventStore/pull/3793)
-- Options to restrict EventStoreDB access for anonymous users [EventStore#3787](https://github.com/EventStore/EventStore/pull/3787)
-- Metrics for count of events being read/written and bytes being read [EventStore#3737](https://github.com/EventStore/EventStore/pull/3737)
-- metrics for current/total/failed grpc calls [EventStore#3825](https://github.com/EventStore/EventStore/pull/3825)
-- log of telemetry configuration on startup [EventStore#3835](https://github.com/EventStore/EventStore/pull/3835)
-- Chunk and StreamInfo cache hits/misses metrics [EventStore#3829](https://github.com/EventStore/EventStore/pull/3829)
-- Storage writer flush size/duration metrics [EventStore#3827](https://github.com/EventStore/EventStore/pull/3827)
-
 ### Changed
-- Log warnings and errors when close to the max chunk number limit [EventStore#3643](https://github.com/EventStore/EventStore/pull/3643)
-- Update UI build after latest changes. [EventStore#3683](https://github.com/EventStore/EventStore/pull/3683)
-- Publish messages from the persistent subscriptions IODispatcher to the Persistent Subscriptions queue rather than the main queue [EventStore#3702](https://github.com/EventStore/EventStore/pull/3702)
-- CI Unit test settings [EventStore#3712](https://github.com/EventStore/EventStore/pull/3712)
-- log available commands separately. [EventStore#3705](https://github.com/EventStore/EventStore/pull/3705)
-- Adjustments to reduce allocations [EventStore#3731](https://github.com/EventStore/EventStore/pull/3731)
-- Support specifying values with a metric prefix with the `testclient`. [EventStore#3748](https://github.com/EventStore/EventStore/pull/3748)
-- Jint library version to 3.0.0-beta-2048 [EventStore#3788](https://github.com/EventStore/EventStore/pull/3788)
-- Minor adjustments in solution file [EventStore#3798](https://github.com/EventStore/EventStore/pull/3798)
+- `TFChunk.TryAppend` is converted to async method [EventStore#4606](https://github.com/EventStore/EventStore/pull/4606)
+- `TFChunk.TryAppendRawData` converted to async version [EventStore#4605](https://github.com/EventStore/EventStore/pull/4605)
+- `TFChunk.Flush` converted to async version [EventStore#4600](https://github.com/EventStore/EventStore/pull/4600)
+- `TFChunk.GetActualRawPosition` converted to async method [EventStore#4604](https://github.com/EventStore/EventStore/pull/4604)
+- Migration of `TFChunk.ExistsAt`, `TFChunk.TryReadAt`, `TFChunk.TryReadClosestForward` to async [EventStore#4556](https://github.com/EventStore/EventStore/pull/4556)
+- Introduce async-friendly synchronization for `HashListMemTable` [EventStore#4536](https://github.com/EventStore/EventStore/pull/4536)
+- Move `TFChunk.VerifyFileHash` and `TFChunk.FromCompletedFile` to async [EventStore#4495](https://github.com/EventStore/EventStore/pull/4495)
+- `TFChunk.CacheInMemory` converted to async [EventStore#4458](https://github.com/EventStore/EventStore/pull/4458)
+- `TFChunk.TryReadLast` and `TFChunk.TryReadClosestBackward` converted to async [EventStore#4457](https://github.com/EventStore/EventStore/pull/4457)
+- Converted `TFChunk.TryReadClosestForwardRaw` and `EpochManager` to async [EventStore#4449](https://github.com/EventStore/EventStore/pull/4449)
+- Moved TFChunk.TryReadFirst to async [EventStore#4446](https://github.com/EventStore/EventStore/pull/4446)
+- Move TFChunk.CompleteScavenge to async [EventStore#4440](https://github.com/EventStore/EventStore/pull/4440)
+- `TFChunk.CompleteRaw` transformed into async method [EventStore#4438](https://github.com/EventStore/EventStore/pull/4438)
+- Removed `async` modifier where the async method is awaited in a tail position to reduce overhead caused by compiler-generated async state machines. [EventStore#4428](https://github.com/EventStore/EventStore/pull/4428)
+- Deprecated option `IntIp`, use `ReplicationIp` instead. [EventStore#4533](https://github.com/EventStore/EventStore/pull/4533)
+- Deprecated option `ExtIp`, use `NodeIp` instead. [EventStore#4533](https://github.com/EventStore/EventStore/pull/4533)
+- Deprecated option `HttpPort`, use `NodePort` instead. [EventStore#4533](https://github.com/EventStore/EventStore/pull/4533)
+- Deprecated option `IntTcpPort`, use `ReplicationPort` instead. [EventStore#4533](https://github.com/EventStore/EventStore/pull/4533)
+- Deprecated option `IntHostAdvertiseAs`, use `ReplicationHostAdvertiseAs` instead. [EventStore#4533](https://github.com/EventStore/EventStore/pull/4533)
+- Deprecated option `AdvertiseHttpPortToClientAs`, use `AdvertiseNodePortToClientAs` instead. [EventStore#4533](https://github.com/EventStore/EventStore/pull/4533)
+- Deprecated option `HttpPortAdvertiseAs`, use `NodePortAdvertiseAs` instead. [EventStore#4533](https://github.com/EventStore/EventStore/pull/4533)
+- Deprecated option `IntTcpPortAdvertiseAs`, use `ReplicationTcpPortAdvertiseAs` instead. [EventStore#4533](https://github.com/EventStore/EventStore/pull/4533)
+- Deprecated option `IntTcpHeartbeatTimeout`, use `ReplicationHeartbeatTimeout` instead. [EventStore#4533](https://github.com/EventStore/EventStore/pull/4533)
+- Deprecated option `IntTcpHeartbeatInterval`, use `ReplicationHeartbeatInterval` instead. [EventStore#4533](https://github.com/EventStore/EventStore/pull/4533)
 
 ### Removed
-- Unnecessary allocation on read [EventStore#3691](https://github.com/EventStore/EventStore/pull/3691)
-- some redundant code [EventStore#3709](https://github.com/EventStore/EventStore/pull/3709)
-- Cleanup V8 scripts. [EventStore#3740](https://github.com/EventStore/EventStore/pull/3740)
+- Removed `OptimizeReadSideCache` configuration property and `OptimizeExistsAt`/`DeOptimizeExistsAt` methods. [EventStore#4579](https://github.com/EventStore/EventStore/pull/4579)
+- Deprecated options which had no effect - `AlwaysKeepScavenged`, `GossipOnSingleNode`, `DisableInternalTcpTls`, `OptimizeIndexMerge`. [EventStore#4533](https://github.com/EventStore/EventStore/pull/4533)
 
-### Cherry picked from https
-- //github.com/thefringeninja/EventStore/pull/3747 [EventStore#3755](https://github.com/EventStore/EventStore/pull/3755)
-- //github.com/EventStore/EventStore/pull/3758 [EventStore#3776](https://github.com/EventStore/EventStore/pull/3776)
-- //github.com/EventStore/EventStore/pull/3759 [EventStore#3773](https://github.com/EventStore/EventStore/pull/3773)
-- //github.com/EventStore/EventStore/pull/3760 [EventStore#3772](https://github.com/EventStore/EventStore/pull/3772)
-- //github.com/EventStore/EventStore/pull/3762 [EventStore#3770](https://github.com/EventStore/EventStore/pull/3770)
-- //github.com/thefringeninja/EventStore/pull/3747 [EventStore#3754](https://github.com/EventStore/EventStore/pull/3754)
-- //github.com/EventStore/EventStore/pull/3762 [EventStore#3771](https://github.com/EventStore/EventStore/pull/3771)
-- //github.com/EventStore/EventStore/pull/3758 [EventStore#3775](https://github.com/EventStore/EventStore/pull/3775)
-- //github.com/EventStore/EventStore/pull/3763 [EventStore#3768](https://github.com/EventStore/EventStore/pull/3768)
-- //github.com/EventStore/EventStore/pull/3762 [EventStore#3769](https://github.com/EventStore/EventStore/pull/3769)
-- //github.com/EventStore/EventStore/pull/3764 [EventStore#3774](https://github.com/EventStore/EventStore/pull/3774)
-- //github.com/EventStore/EventStore/pull/3778 [EventStore#3779](https://github.com/EventStore/EventStore/pull/3779)
-- //github.com/EventStore/EventStore/pull/3801 [EventStore#3806](https://github.com/EventStore/EventStore/pull/3806)
-- //github.com/EventStore/EventStore/pull/3813 [EventStore#3821](https://github.com/EventStore/EventStore/pull/3821)
-- //github.com/EventStore/EventStore/pull/3813 [EventStore#3821](https://github.com/EventStore/EventStore/pull/3821)
+## [24.10.0] - 2024-11-13
+
+### Fixed
+- Fixed potential partial read in TFChunk. [EventStore#4608](https://github.com/EventStore/EventStore/pull/4608)
+- Runtime information log on startup [EventStore#4572](https://github.com/EventStore/EventStore/pull/4572)
+- Enhance shutdown service to handle pre-terminated services. [EventStore#4563](https://github.com/EventStore/EventStore/pull/4563)
+- Explicitly deny stream operations in fallback policy. [EventStore#4567](https://github.com/EventStore/EventStore/pull/4567)
+- Don't time out projection manager reads. [EventStore#4557](https://github.com/EventStore/EventStore/pull/4557)
+- Only use the fallback policy for stream access. Revert to the legacy policy for endpoint access. [EventStore#4537](https://github.com/EventStore/EventStore/pull/4537)
+- Fix authorization policy registry being loaded in insecure mode. [EventStore#4530](https://github.com/EventStore/EventStore/pull/4530)
+- If the scavenge is unable to write a scavenge point it will now error rather than stall. [EventStore#4512](https://github.com/EventStore/EventStore/pull/4512)
+- Reverted free mem stat to be MemAvailable rather than MemFree on linux. [EventStore#4509](https://github.com/EventStore/EventStore/pull/4509)
+- Missing BSD-3 attribution since the recent license change. [EventStore#4493](https://github.com/EventStore/EventStore/pull/4493)
+- Don't write the database default `ProjectionExecutionTimeout` in the projection persisted state on creation. [EventStore#4432](https://github.com/EventStore/EventStore/pull/4432)
+- Ignore dlls that are not .NET assemblies when loading plugins. [EventStore#4380](https://github.com/EventStore/EventStore/pull/4380)
+- Gossip on single node. [EventStore#4367](https://github.com/EventStore/EventStore/pull/4367)
+- Optimize CPU usage of the timer service when the database is idle. [EventStore#4224](https://github.com/EventStore/EventStore/pull/4224) - thanks [@taspeotis](https://github.com/taspeotis)!
+- Redaction: Return the chunk's `MinCompatibleVersion` instead of `Version` when retrieving event positions. [EventStore#4354](https://github.com/EventStore/EventStore/pull/4354)
+- Avoid replaying deleted events from the source stream when replaying parked messages for a persistent subscription. [EventStore#4300](https://github.com/EventStore/EventStore/pull/4300)
+- LeaderId and Epoch number would sometimes be empty (Guid.empty) for a follower node or a read only replica that would join a cluster whose leader is already elected. https://eventstore.aha.io/develop/requirements/DB-26-4 . [Linear Issue](https://linear.app/eventstore/issue/DB-611/leaderid-sometimes-guidempty-in-telemetry) [EventStore#4256](https://github.com/EventStore/EventStore/pull/4256)
+- Remove redundant check which is always true. [EventStore#4265](https://github.com/EventStore/EventStore/pull/4265)
+- Typos in option descriptions. [EventStore#4215](https://github.com/EventStore/EventStore/pull/4215)
+
+### Added
+- ReadOnlyReplica and archiver flags to machine metadata in license. [EventStore#4597](https://github.com/EventStore/EventStore/pull/4597)
+- License error to `/license` endpoint. [EventStore#4549](https://github.com/EventStore/EventStore/pull/4549)
+- Log warning on startup about removed "Plugins" configuration subsection. [EventStore#4540](https://github.com/EventStore/EventStore/pull/4540)
+- Telemetry configuration section to telemetry that is sent. [EventStore#4532](https://github.com/EventStore/EventStore/pull/4532)
+- License headers to files. [EventStore#4487](https://github.com/EventStore/EventStore/pull/4487)
+- Make sure all systems that require a shutdown process complete before exiting. [EventStore#4403](https://github.com/EventStore/EventStore/pull/4403)
+- Licence header to source files. [EventStore#4455](https://github.com/EventStore/EventStore/pull/4455)
+- Chunk read distribution metric. [EventStore#4445](https://github.com/EventStore/EventStore/pull/4445)
+- Operating System to telemetry. [EventStore#4443](https://github.com/EventStore/EventStore/pull/4443)
+- `GET /admin/scavenge/last` endpoint. [EventStore#4419](https://github.com/EventStore/EventStore/pull/4419)
+- Groundwork for Archive. [EventStore#4427](https://github.com/EventStore/EventStore/pull/4427) and [EventStore#4417](https://github.com/EventStore/EventStore/pull/4417)
+- Handling for missing labels in `metricsconfig.json`. [EventStore#4420](https://github.com/EventStore/EventStore/pull/4420)
+- Facilitate node-to-node communication over HTTP for plugins. [EventStore#4409](https://github.com/EventStore/EventStore/pull/4409)
+- License and Notices to build output. [EventStore#4404](https://github.com/EventStore/EventStore/pull/4404)
+- License mappings for Qodana. [EventStore#4398](https://github.com/EventStore/EventStore/pull/4398)
+- Qodana to CI. [EventStore#4392](https://github.com/EventStore/EventStore/pull/4392)
+- A log for which auth policy plugin is being used. [EventStore#4377](https://github.com/EventStore/EventStore/pull/4377)
+- Padding after the SourceContext in the console log output. [EventStore#4376](https://github.com/EventStore/EventStore/pull/4376)
+- Allow loading multiple policies for authorization. [EventStore#4305](https://github.com/EventStore/EventStore/pull/4305)
+- A banner linking to Event Store Navigator in the UI. [EventStore#4323](https://github.com/EventStore/EventStore/pull/4323)
+- Support for chunk data transformation plugins. [EventStore#4258](https://github.com/EventStore/EventStore/pull/4258)
+- Chunk version 4 (`Transformed`) file format. [EventStore#4289](https://github.com/EventStore/EventStore/pull/4289)
+- Support for forward compatibility in chunks. [EventStore#4289](https://github.com/EventStore/EventStore/pull/4289)
+- Added librdkafka redist package. [EventStore#4378](https://github.com/EventStore/EventStore/pull/4378)
+
+### Changed
+- Only use `AuthorizationPolicyRegistryFactory` when the `internal` authorization plugin is enabled. [EventStore#4594](https://github.com/EventStore/EventStore/pull/4594)
+- Internal changes to allow bundling of MD5 plugin. [EventStore#4582](https://github.com/EventStore/EventStore/pull/4582)
+- Restrict Subscriptions.ProcessMessages operations in the fallback policy. [EventStore#4570](https://github.com/EventStore/EventStore/pull/4570)
+- Improved shutdown logging on license validation error. [EventStore#4565](https://github.com/EventStore/EventStore/pull/4565)
+- Upgraded to [Jint v4](https://github.com/sebastienros/jint/releases/tag/v4.0.0). [EventStore#4339](https://github.com/EventStore/EventStore/pull/4339) - thanks [@lahma](https://github.com/lahma)!
+- `Authorization:PolicyType` option to `Authorization:DefaultPolicyType`. [EventStore#4545](https://github.com/EventStore/EventStore/pull/4545)
+- Improved shutdown logging. [EventStore#4548](https://github.com/EventStore/EventStore/pull/4548)
+- Notices file to reflect package upgrades. [EventStore#4517](https://github.com/EventStore/EventStore/pull/4517)
+- gRPC log level to fatal (actually keeping the same behaviour as previous versions). [EventStore#4521](https://github.com/EventStore/EventStore/pull/4521)
+- Moved plugable components out of 'Plugins' section in telemetry. [EventStore#4474](https://github.com/EventStore/EventStore/pull/4474)
+- Plugin configuration to no longer be nested in `Plugins` section. [EventStore#4471](https://github.com/EventStore/EventStore/pull/4471)
+- (All) plugins can now be configured from the main yaml config file. [EventStore#4470](https://github.com/EventStore/EventStore/pull/4470)
+- Software License to [ESLv2](https://www.eventstore.com/blog/introducing-event-store-license-v2-eslv2). [EventStore#4452](https://github.com/EventStore/EventStore/pull/4452)
+- Cosmetic changes to modernize the code base. [EventStore#4429](https://github.com/EventStore/EventStore/pull/4429)
+- Refactor projections to use `IPublisher` and `ISubscriber` instead of `IQueuedHandler` and `IBus`. [EventStore#4413](https://github.com/EventStore/EventStore/pull/4413)
+- `InMemoryBus` becomes asynchronous dispatcher. Async handlers now can use `IAsyncHandle<T>` interface to enable async execution. [EventStore#4408](https://github.com/EventStore/EventStore/pull/4408)
+- Group projection processing classes into namespaces. [EventStore#4412](https://github.com/EventStore/EventStore/pull/4412)
+- Internal message bus is changed to be lock-free for better performance. Also, the change drives further perf improvements. [EventStore#4390](https://github.com/EventStore/EventStore/pull/4390)
+- 3rd party license notices now in NOTICE.html. [EventStore#4402](https://github.com/EventStore/EventStore/pull/4402)
+- Take whether a leader is resigning into account before the node priority when selecting the best candidate for an election. [EventStore#4371](https://github.com/EventStore/EventStore/pull/4371)
+- Upgraded all serilog packages. [EventStore#4341](https://github.com/EventStore/EventStore/pull/4341)
+- Disabled logger init check when debugging. [EventStore#4341](https://github.com/EventStore/EventStore/pull/4341)
+- Console logging now includes SourceContext with component name. [EventStore#4341](https://github.com/EventStore/EventStore/pull/4341)
+- Default log uses `EventStore` as the name. [EventStore#4341](https://github.com/EventStore/EventStore/pull/4341)
+- When adding serilog to the host we now correctly clear all existing providers. [EventStore#4341](https://github.com/EventStore/EventStore/pull/4341)
+- If debug, no exception is thrown if logging was not initialized. [EventStore#4341](https://github.com/EventStore/EventStore/pull/4341)
+- If debug, any background service exception stops the host. [EventStore#4341](https://github.com/EventStore/EventStore/pull/4341)
+- If debug, configuration tries to load appsettings.json and appsettings.Development.json. [EventStore#4341](https://github.com/EventStore/EventStore/pull/4341)
+- Separated persistent subscription metrics into multiple instruments. [EventStore#4315](https://github.com/EventStore/EventStore/pull/4315)
+- Separated projections metrics into multiple instruments. [EventStore#4312](https://github.com/EventStore/EventStore/pull/4312)
+- Unit tests use TCP as a plugin. [EventStore#4210](https://github.com/EventStore/EventStore/pull/4210)
+
+### Removed
+- Byte order marks from source code. [EventStore#4450](https://github.com/EventStore/EventStore/pull/4450)
+- Support for extremely old (V1) PTables. [EventStore#4447](https://github.com/EventStore/EventStore/pull/4447)
+- Unused `TimeoutScheduler` from projections. [EventStore#4434](https://github.com/EventStore/EventStore/pull/4434)
+- `IBus` interface is removed with no replacement to clearly distinguish roles of message dispatcher and message scheduler. Removed unused schedulers and related tests. [EventStore#4408](https://github.com/EventStore/EventStore/pull/4408)
+- Replace the generic `PublishSubscribeDisptacher` with a more specific `ReaderSubscriptionDispatcher` in projections. [EventStore#4413](https://github.com/EventStore/EventStore/pull/4413)
+- `/histogram/{name}` endpoint [EventStore#4394](https://github.com/EventStore/EventStore/pull/4394)
+
+### Breaking Changes
+- The `/histogram/{name}` endpoint has been removed. [EventStore#4394](https://github.com/EventStore/EventStore/pull/4394)
+- Support v1 PTables has been removed. [EventStore#4447](https://github.com/EventStore/EventStore/pull/4447)
+- Otel Exporter commercial plugin configuration has changed to be nested within the `EventStore` subsection for consistency with the other plugins. [Upgrade guide](https://developers.eventstore.com/server/v24.10/quick-start/upgrade-guide.html#breaking-changes)
+- User certificates commercial plugin configuration is no longer nested in a `Plugins` subsection. [Upgrade guide](https://developers.eventstore.com/server/v24.10/quick-start/upgrade-guide.html#breaking-changes)
+- External TCP API and related configuration settings have been removed. [Upgrade guide](https://developers.eventstore.com/server/v24.10/quick-start/upgrade-guide.html#breaking-changes)
+
+## [23.10.3] - 2024-09-18
+
+### Changed
+- Upgraded all grpc and proto related packages. [EventStore#4340](https://github.com/EventStore/EventStore/pull/4340)
+
+### Fixed
+- Transitive dependency vulnerabilities with `System.Text.Json` and `System.Formats.Asn1`. [EventStore#4340](https://github.com/EventStore/EventStore/pull/4340)
+- Projections shutdown timeout check is now published on the correct thread. [EventStore#4407](https://github.com/EventStore/EventStore/pull/4407)
+- Don't write the database default `ProjectionExecutionTimeout` in the projection persisted state on creation. [EventStore#4423](https://github.com/EventStore/EventStore/pull/4423)
+- Multistream projections don't always start properly when the input stream is truncated or deleted.[EventStore#4431](https://github.com/EventStore/EventStore/pull/4431)
+
+## [24.6.0] - 2024-06-26
+
+### Changed
+- <internal changes> [EventStore#4202](https://github.com/EventStore/EventStore/pull/4202)
+- Reduced FileHandle usage by 80%. Now 1 per chunk instead of 5+. [EventStore#4174](https://github.com/EventStore/EventStore/pull/4174)
+- Automate and Unify Configuration. [EventStore#4144](https://github.com/EventStore/EventStore/pull/4144)
+- Change status for incomplete scavenges from "Failed" to "Interrupted". [EventStore#4225](https://github.com/EventStore/EventStore/pull/4225)
+- Wire up Authorization/Authentication/MD5 plugins to DI. [EventStore#4229](https://github.com/EventStore/EventStore/pull/4229)
+- The EventStore.TestClient to use the logconfig.json from EventStore.ClusterNode. [EventStore#4243](https://github.com/EventStore/EventStore/pull/4243)
+- Runtime and Process stats such as CPU Usage and Disk IO. [EventStore#4257](https://github.com/EventStore/EventStore/pull/4257)
+- Open the database faster by building the midpoints for scavenged chunks later on demand. [EventStore#4214](https://github.com/EventStore/EventStore/pull/4214)
+- Allow an extra chunk at startup. [EventStore#4263](https://github.com/EventStore/EventStore/pull/4263)
+- Refactored Authentication and Authorization plugins. [EventStore#4266](https://github.com/EventStore/EventStore/pull/4266)
+- Always replicate the chunk header. [EventStore#4211](https://github.com/EventStore/EventStore/pull/4211)
+- Index merge now continues even if there is not enough memory to store the Bloom filter. [EventStore#4285](https://github.com/EventStore/EventStore/pull/4285)
+- Changed telemetry service to reflect plugin changes. [EventStore#4290](https://github.com/EventStore/EventStore/pull/4290)
+
+### Fixed
+- Improve error messaging for non-existent projections in gRPC API. [EventStore#4197](https://github.com/EventStore/EventStore/pull/4197)
+- Handle UUIDOption being null in gRPC calls. [EventStore#4158](https://github.com/EventStore/EventStore/pull/4158)
+- TestClient package dependencies. [EventStore#4207](https://github.com/EventStore/EventStore/pull/4207)
+- Error sending usage telemetry in certain circumstances. [EventStore#4231](https://github.com/EventStore/EventStore/pull/4231)
+- Events written in explicit transactions via TCP can be missing from $all reads/subscriptions. [EventStore#4251](https://github.com/EventStore/EventStore/pull/4251)
+- Use the advertised addresses for identifying nodes in the scavenge log. [EventStore#4247](https://github.com/EventStore/EventStore/pull/4247)
+- Properly handle startup corner case where a scavenged chunk was replicated and switched in but the writer checkpoint wasn't yet updated. [EventStore#4264](https://github.com/EventStore/EventStore/pull/4264)
+- Test client `wrflgrpc` no longer produces accidental idempotent writes. [EventStore#4280](https://github.com/EventStore/EventStore/pull/4280)
+- Finalizer bug no longer causes process exit if a memory allocation fails. [EventStore#4284](https://github.com/EventStore/EventStore/pull/4284)
+- Incorrect handling of SIGHUP. [EventStore#4293](https://github.com/EventStore/EventStore/pull/4293)
+- Plugin loader wrongly loaded interfaces and abstract classes. [EventStore#4290](https://github.com/EventStore/EventStore/pull/4290)
+- Version numbering of EventStore.Common.dll. [EventStore#4298](https://github.com/EventStore/EventStore/pull/4298)
+- Redacted events break replication on a follower node. [EventStore#4291](https://github.com/EventStore/EventStore/pull/4291)
+
+### Added
+- Add the elections counter metric so users can set alerts if the number of elections over a certain period of time exceeds some number. [EventStore#4179](https://github.com/EventStore/EventStore/pull/4179)
+- Log an error when the node certificate is not a valid server certificate. [EventStore#4249](https://github.com/EventStore/EventStore/pull/4249)
+- New UnixSignalManager using PosixSignalRegistration. [EventStore#4257](https://github.com/EventStore/EventStore/pull/4257)
+- EventStore.SystemRuntime project. [EventStore#4257](https://github.com/EventStore/EventStore/pull/4257)
+- Add more information to the current database options API response. [EventStore#3934](https://github.com/EventStore/EventStore/pull/3934)
+- Allow statusCode for health requests to be provided in query string. e.g. `/health/live?liveCode=200`. [EventStore#4268](https://github.com/EventStore/EventStore/pull/4268)
+- Refactoring to support chunk data transformation. [EventStore#4217](https://github.com/EventStore/EventStore/pull/4217)
+- Replicate the transform header to followers. [EventStore#4242](https://github.com/EventStore/EventStore/pull/4242)
+- Chunk version 4 (Transformed) file format. [EventStore#4289](https://github.com/EventStore/EventStore/pull/4289)
+- Support for forward compatibility in chunks. [EventStore#4289](https://github.com/EventStore/EventStore/pull/4289)
+- Support for chunk data transformation plugins. [EventStore#4258](https://github.com/EventStore/EventStore/pull/4258)
+- More read response exceptions. [EventStore#4301](https://github.com/EventStore/EventStore/pull/4301)
+- New metrics for projection subsystem. [EventStore#4267](https://github.com/EventStore/EventStore/pull/4267)
+- Extend metrics for Persistent Subscriptions. [EventStore#4248](https://github.com/EventStore/EventStore/pull/4248)
+- A warning to the log when a projection state size becomes greater than 8 MB. [EventStore#4276](https://github.com/EventStore/EventStore/pull/4276)
+
+### Updated
+- Dockerfile for newer buildkit. [EventStore#4204](https://github.com/EventStore/EventStore/pull/4204)
+
+### Removed
+- EventStore.Common.Utils project and other unused code. [EventStore#4257](https://github.com/EventStore/EventStore/pull/4257)
+- Remove redundant check which is always true in LeaderReplicationService. [EventStore#4265](https://github.com/EventStore/EventStore/pull/4265)
+
+### Breaking Changes
+- The database now restarts a second time to complete a truncation operation. [EventStore#4258](https://github.com/EventStore/EventStore/pull/4258)
+- Unbuffered config setting now has no effect. Let us know if you're using this feature. [EventStore#4286](https://github.com/EventStore/EventStore/pull/4286)
+- Change event type of Persistent Subscription checkpoint to `$SubscriptionCheckpoint`. [EventStore#4213](https://github.com/EventStore/EventStore/pull/4213)
+
+## [23.10.2] - 2024-07-10
+
+### Changed
+- Upgrade to .NET 8. [EventStore#4046](https://github.com/EventStore/EventStore/pull/4046)
+- Explicitly set the shutdown timeout to 5s, which was default in previous dotnet versions. Behaviour unchanged since previous release. [EventStore#4110](https://github.com/EventStore/EventStore/pull/4110)
+- Index merge now continues even if there is not enough memory to store the Bloom filter. [EventStore#4296](https://github.com/EventStore/EventStore/pull/4296)
+
+### Fixed
+- Upgraded package reference for [CVE-2024-0057](https://github.com/advisories/GHSA-68w7-72jg-6qpp). [EventStore#4164](https://github.com/EventStore/EventStore/pull/4164)
+- Events written in explicit transactions via TCP can be missing from $all reads/subscriptions [EventStore#4253](https://github.com/EventStore/EventStore/pull/4253)
+- TestClient package dependencies [EventStore#4207](https://github.com/EventStore/EventStore/pull/4207)
+- Finalizer bug no longer causes process exit if a memory allocation fails. [EventStore#4292](https://github.com/EventStore/EventStore/pull/4292)
+- Redacted events break replication on a follower node. [EventStore#4304](https://github.com/EventStore/EventStore/pull/4304)
+- Prevent 64-bit integer overflow in `GetMidpointIndex()` / `IsMidpointIndex()`. [EventStore#4333](https://github.com/EventStore/EventStore/pull/4333)
+
+## [24.2.0] - 2024-02-25
+
+### Changed
+- Set the default value of `CertificateReservedNodeCommonName` to empty string [EventStore#4001](https://github.com/EventStore/EventStore/pull/4001)
+- Upgrade to .NET 8. [EventStore#4046](https://github.com/EventStore/EventStore/pull/4046)
+- Don't require ReadIndex in the enumerators when subscribing from $all [EventStore#4057](https://github.com/EventStore/EventStore/pull/4057)
+- Simplified HTTP pipeline [EventStore#4088](https://github.com/EventStore/EventStore/pull/4088)
+- Do not autosize thread count and streaminfocache size in containerized environments [EventStore#4103](https://github.com/EventStore/EventStore/pull/4103)
+- Explicitly set the shutdown timeout to 5s, which was default in previous dotnet versions. Behaviour unchanged since previous release. [EventStore#4110](https://github.com/EventStore/EventStore/pull/4110)
+- Re-authorize stream access in live subscriptions when stream metadata changes. [EventStore#4104](https://github.com/EventStore/EventStore/pull/4104)
+- Re-authorize stream access in live subscriptions when default ACLs change. [EventStore#4116](https://github.com/EventStore/EventStore/pull/4116)
+- Re-authorize subscriptions to `$all` when its stream metadata (`$$$all`) changes. [EventStore#4118](https://github.com/EventStore/EventStore/pull/4118)
+- Upgrade Jint to version 3.0.0. [EventStore#4121](https://github.com/EventStore/EventStore/pull/4121)
+- Updated plugin API. [EventStore#4126](https://github.com/EventStore/EventStore/pull/4126)
+- Decouple the enumerators from gRPC so they can work directly with connectors. [EventStore#3998](https://github.com/EventStore/EventStore/pull/3998)
+
+### Added
+- gRPC stream subscriptions with smooth transitions between live and catchup. Subscriptions no longer drop with "consumer too slow" reason. [EventStore#4093](https://github.com/EventStore/EventStore/pull/4093)
+- gRPC `$all` subscriptions with smooth transitions between live and catchup. Subscriptions no longer drop with "consumer too slow" reason. [EventStore#4117](https://github.com/EventStore/EventStore/pull/4117)
+- General support for plugin configuration. [EventStore#4130](https://github.com/EventStore/EventStore/pull/4130)
+- Improved support for plugins to perform authorization checks. [EventStore#4145](https://github.com/EventStore/EventStore/pull/4145)
+- `$mem-gossip` memory stream. [EventStore#4123](https://github.com/EventStore/EventStore/pull/4123)
+- Support for a wider range of authentication plugins. (facilitates user X.509 certificates plugin) [EventStore#4148](https://github.com/EventStore/EventStore/pull/4148)
+- Support for new packaging pipeline. [EventStore#4157](https://github.com/EventStore/EventStore/pull/4157)
+
+### Fixed
+- Addressed [CVE-2024-26133](https://github.com/EventStore/EventStore/security/advisories/GHSA-6r53-v8hj-x684): Potential password leak in the EventStoreDB Projections Subsystem.
+- 'Unknown' error reported to client after successful idempotent write to deleted stream. [EventStore#4059](https://github.com/EventStore/EventStore/pull/4059)
+- Report same version info when using different kind of release tags (annotated or lightweight). [EventStore#4081](https://github.com/EventStore/EventStore/pull/4081)
+- Calls to `/stats/replication` on a single node cluster would hang forever. [EventStore#4102](https://github.com/EventStore/EventStore/pull/4102)
+- gRPC stream subscription now receives a stream deleted exception when subscribing to a tombstoned stream from `End` [EventStore#4108](https://github.com/EventStore/EventStore/pull/4108)
+- gRPC stream subscription now receives `CaughtUp` message when subscribing to a non-existing or soft-deleted stream. Previously in such cases, the stream subscription enumerator was looping in catch-up mode until a new event is received (and thus it never sent `CaughtUp` to the subscription) [EventStore#4108](https://github.com/EventStore/EventStore/pull/4108)
+- Initialize replication service heartbeat interval with `ReplicationHeartbeatInterval` instead of `NodeHeartbeatInterval `. [EventStore#4125](https://github.com/EventStore/EventStore/pull/4125)
+- `$all` subscription enumerator returns `InvalidPosition` when subscribing at an invalid position. [EventStore#4128](https://github.com/EventStore/EventStore/pull/4128)
+- Build on ARM, AnyCPU solution settings was actually using X64. [EventStore#4129](https://github.com/EventStore/EventStore/pull/4129)
+- Filtered `$all` subscription enumerator returns `InvalidPosition` when subscribing at an invalid position. [EventStore#4131](https://github.com/EventStore/EventStore/pull/4131)
+- upgraded package reference for CVE-2024-0057 [EventStore#4165](https://github.com/EventStore/EventStore/pull/4165)
+
+### Removed
+- Unnecessary code [EventStore#4087](https://github.com/EventStore/EventStore/pull/4087)
+- Remove mentions of external TCP in the docs. [EventStore#4151](https://github.com/EventStore/EventStore/pull/4151)
+
+### Breaking Changes
+
+- Remove the external TCP API and related configuration options. [EventStore#4113](https://github.com/EventStore/EventStore/pull/4113) and [EventStore#4153](https://github.com/EventStore/EventStore/pull/4153)
+- The following options have been removed:
+    - `AdvertiseTcpPortToClientAs`
+    - `DisableExternalTcpTls`
+    - `EnableExternalTcp`
+    - `ExtHostAdvertiseAs`
+    - `ExtTcpHeartbeatInterval`
+    - `ExtTcpHeartbeatTimeout`
+    - `ExtTcpPort`
+    - `ExtTcpPortAdvertiseAs`
+    - `NodeHeartbeatInterval`
+    - `NodeHeartbeatTimeout`
+    - `NodeTcpPort`
+    - `NodeTcpPortAdvertiseAs`
+- The behaviour for filtered `$all` checkpoints has changed ([EventStore#4131](https://github.com/EventStore/EventStore/pull/4131)). Instead of receiving a checkpoint exactly after the checkpoint interval, a checkpoint will be issued at least once per checkpoint interval:
+    - When live, checkpoints will still be issued after exactly checkpoint interval events.
+    - When catching up, checkpoints will still be issued after exactly checkpoint interval events (except that the first checkpoint will be offset by one event).
+    - When transitioning from catch-up to live, a checkpoint is issued.
+    - When falling behind from live to catch-up, a checkpoint is issued.
+
+## [23.10.1] - 2024-02-20
+
+### Fixed
+- Addressed [CVE-2024-26133](https://github.com/EventStore/EventStore/security/advisories/GHSA-6r53-v8hj-x684): Potential password leak in the EventStoreDB Projections Subsystem.
+
+## [22.10.5] - 2024-02-20
+
+### Fixed
+- Addressed [CVE-2024-26133](https://github.com/EventStore/EventStore/security/advisories/GHSA-6r53-v8hj-x684): Potential password leak in the EventStoreDB Projections Subsystem.
+
+## [21.10.11] - 2024-02-20
+
+### Fixed
+- Addressed [CVE-2024-26133](https://github.com/EventStore/EventStore/security/advisories/GHSA-6r53-v8hj-x684): Potential password leak in the EventStoreDB Projections Subsystem.
+
+## [20.10.6] - 2024-02-20
+
+### Fixed
+- Addressed [CVE-2024-26133](https://github.com/EventStore/EventStore/security/advisories/GHSA-6r53-v8hj-x684): Potential password leak in the EventStoreDB Projections Subsystem.
+
+## [22.10.4] - 2023-11-22
+
+### Fixed
+- Checkpoints of filtered $all subscription not always send on correct interval. [EventStore#4023](https://github.com/EventStore/EventStore/pull/4023)
+- A way for unreplicated data to appear in a subscription or reads before being truncated [EventStore#4018](https://github.com/EventStore/EventStore/pull/4018)
+- Updating a persistent subscription clears the filter [EventStore#4017](https://github.com/EventStore/EventStore/pull/4107)
+- Persistent subscription error code regression introduced this release. [EventStore#3963](https://github.com/EventStore/EventStore/pull/3963)
+- FilteredAllSubscription checkpoint now continues to update after becomming live. [EventStore#3734](https://github.com/EventStore/EventStore/pull/3734)
+
+### Removed
+- Extra checkpoint when subscription to $all goes live. [EventStore#4023](https://github.com/EventStore/EventStore/pull/4023)
+
+## [21.10.10] - 2023-11-22
+
+### Fixed
+- Checkpoints of filtered $all subscription not always send on correct interval. [EventStore#4035](https://github.com/EventStore/EventStore/pull/4035)
+- Patch Newtonsoft from `13.0.1` to `13.0.2` [EventStore#3679](https://github.com/EventStore/EventStore/pull/3679)
+- Database checkpoints becomes inconsistent when running out of disk space [EventStore#3682](https://github.com/EventStore/EventStore/pull/3682)
+- Slow persistent subscription consumer no longer slows down other subscribers [EventStore#3710](https://github.com/EventStore/EventStore/pull/3710)
+- Cancel reads already in the reader queues when the gRPC call is cancelled [EventStore#3719](https://github.com/EventStore/EventStore/pull/3719)
+- Downgraded an error log message that is not really an error to debug level [EventStore#3728](https://github.com/EventStore/EventStore/pull/3728)
+- Sender of create / update Persistent Subscription now notified of failure [EventStore#3755](https://github.com/EventStore/EventStore/pull/3755)
+- Support bloom filters for 400gb+ index files. [EventStore#3880](https://github.com/EventStore/EventStore/pull/3880)
+- Bump gRPC packages for [CVE-2023-32731](https://github.com/advisories/GHSA-cfgp-2977-2fmm) [EventStore#3893](https://github.com/EventStore/EventStore/pull/3893)
+- Bump System.Text.RegularExpressions for [CVE-2019-0820](https://github.com/advisories/GHSA-cmhx-cq75-c4mj) [EventStore#3893](https://github.com/EventStore/EventStore/pull/3893)
+- Bump System.Drawing.Common [CVE-2021-24112](https://github.com/advisories/GHSA-rxg9-xrhp-64gj) [EventStore#3893](https://github.com/EventStore/EventStore/pull/3893)
+- Bump System.Security.Cryptography.* [CVE-2022-34716](https://github.com/advisories/GHSA-2m65-m22p-9wjw) [EventStore#3893](https://github.com/EventStore/EventStore/pull/3893)
+- A way for unreplicated data to appear in a subscription or reads before being truncated [EventStore#4018](https://github.com/EventStore/EventStore/pull/4018)
+- Updating a persistent subscription clears the filter [EventStore#4017](https://github.com/EventStore/EventStore/pull/4017)
+- Checkpoints of filtered $all subscription not always send on correct interval. [EventStore#4035](https://github.com/EventStore/EventStore/pull/4035)
+
+### Removed
+- Extra checkpoint when subscription to $all goes live. [EventStore#4035](https://github.com/EventStore/EventStore/pull/4035)
+- Some redundant code. [EventStore#3722](https://github.com/EventStore/EventStore/pull/3722)
+
+
+## [23.10.0] - 2023-10-13
+
+### Breaking Changes
+- Renamed PersistentConfig1 system event type to $PersistentConfig [EventStore#3932](https://github.com/EventStore/EventStore/pull/3932)
+- Certain configuration parameters (mainly Interface options) have been deprecated and renamed, which would make it more clear as to what each parameter/option does. [EventStore#3907](https://github.com/EventStore/EventStore/pull/3907)
+
+### Changed
+- Always read the active chunk from memory instead of from the FileStream. [EventStore#3890](https://github.com/EventStore/EventStore/pull/3890)
+- CI Unit test settings [EventStore#3943](https://github.com/EventStore/EventStore/pull/3943)
+- Rename Telemetry namespace to Metrics [EventStore#3971](https://github.com/EventStore/EventStore/pull/3971)
+- Configure `CertificateReservedNodeCommonName` to be the node's CN by default [EventStore#3966](https://github.com/EventStore/EventStore/pull/3966)
+- Make `CertificateReservedNodeCommonName` dynamically reloadable [EventStore#3966](https://github.com/EventStore/EventStore/pull/3966)
+- Log levels [EventStore#3973](https://github.com/EventStore/EventStore/pull/3973)
+- Updated reference to EventStore.Plugins to 23.10.1 [EventStore#3990](https://github.com/EventStore/EventStore/pull/3990)
+- No longer log misleading error about 'Max internal streams limit' when running out of file handles [EventStore#3902](https://github.com/EventStore/EventStore/pull/3902)
+
+### Removed
+- Unused code around checkpoints [EventStore#3900](https://github.com/EventStore/EventStore/pull/3900)
+- Removed unused code paths [EventStore#3928](https://github.com/EventStore/EventStore/pull/3928)
+
+### Added
+- Restored OpenAPI specification for HTTP API. [EventStore#3886](https://github.com/EventStore/EventStore/pull/3886)
+- "CaughtUp" gRPC control message for subscriptions when a subscription becomes live [EventStore#3899](https://github.com/EventStore/EventStore/pull/3899)
+- Prevent implicit transactions from spanning multiple chunks [EventStore#3918](https://github.com/EventStore/EventStore/pull/3918)
+- Documentation for FIPS 140-2 compliance [EventStore#3948](https://github.com/EventStore/EventStore/pull/3948)
+- Documentation for redaction [EventStore#3949](https://github.com/EventStore/EventStore/pull/3949)
+- Add steps in Documentation to update certificates [EventStore#3940](https://github.com/EventStore/EventStore/pull/3940)
+- Call home database telemetry. [EventStore#3947](https://github.com/EventStore/EventStore/pull/3947)
+- Support for more plugins use cases [EventStore#3984](https://github.com/EventStore/EventStore/pull/3984)
+- Support for pluggable subsystems [EventStore#3986](https://github.com/EventStore/EventStore/pull/3986)
+- Support clusters with nodes that have certificates with different CNs [EventStore#3960](https://github.com/EventStore/EventStore/pull/3960)
+- Implement $mem-node-state in-memory stream. [EventStore#3985](https://github.com/EventStore/EventStore/pull/3985)
+- Server support for unicode passwords [EventStore#3974](https://github.com/EventStore/EventStore/pull/3974)
+
+### Fixed
+- Race conditions when caching/uncaching chunks [EventStore#3930](https://github.com/EventStore/EventStore/pull/3930)
+- Server now always returns a valid address when replying with a NotHandled.NotLeader response [EventStore#3869](https://github.com/EventStore/EventStore/pull/3869)
+- Prevent torn transactions during replication [EventStore#3896](https://github.com/EventStore/EventStore/pull/3896)
+- Checkpoints of filtered $all subscription not always sent on correct interval. [EventStore#3941](https://github.com/EventStore/EventStore/pull/3941)
+- Report same version info when using different kind of release tags (annotated or lightweight). [EventStore#3950](https://github.com/EventStore/EventStore/pull/3950)
+- Bug in replication test: Replica was subscribing from first epoch instead of the second one [EventStore#3975](https://github.com/EventStore/EventStore/pull/3975)
+- An way for unreplicated data to appear in a subscription or reads before being truncated [EventStore#3972](https://github.com/EventStore/EventStore/pull/3972)
+- Updating a persistent subscription no longer clears the filter [EventStore#3957](https://github.com/EventStore/EventStore/pull/3957)
+- Cache client certificate authentication results for better performance/to make sure already established TLS connections continue to work properly. [EventStore#3966](https://github.com/EventStore/EventStore/pull/3966)
+- Certificate was disposed during the call if it was not an X509Certificate2 object [EventStore#3960](https://github.com/EventStore/EventStore/pull/3960)
+- Wildcard certificate names should have at least 3 domain labels [EventStore#3960](https://github.com/EventStore/EventStore/pull/3960)
+- Support usernames/passwords with unicode characters in UI (https://github.com/EventStore/EventStore.UI/pull/364) [EventStore#3992](https://github.com/EventStore/EventStore/pull/3992)
+- Persistent subscription error code regression introduced this release [EventStore#3996](https://github.com/EventStore/EventStore/pull/3996)
+
+## [22.10.3] 2023-08-31
+
+### Fixed
+
+- Calling the admin/reloadconfig endpoint only reloaded/updated the LogLevel and the certificates were not updated on reloading the config.  [EventStore#3898](https://github.com/EventStore/EventStore/pull/3898)
+- Support bloom filters for 400gb+ index files. [EventStore#3881](https://github.com/EventStore/EventStore/pull/3881)
+
+### Changed
+
+- CI Unit test settings [EventStore#3943](https://github.com/EventStore/EventStore/pull/3943)
+- Bump gRPC packages for [CVE-2023-32731](https://nvd.nist.gov/vuln/detail/CVE-2023-32731) [EventStore#3895](https://github.com/EventStore/EventStore/pull/3895)
+- Bump `System.Security.Cryptography.Pkcs` from 7.0.1 to 7.0.2. [EventStore#3874](https://github.com/EventStore/EventStore/pull/3874)
+
+## [23.6.0] 2023-07-28
+
+### Breaking Changes
+
+- Disabled anonymous access by default (AllowAnonymousStreamAccess, AllowAnonymousEndpointAccess). [EventStore#3905](https://github.com/EventStore/EventStore/pull/3905)
+- Remove PrepareCount and CommitCount db settings and docs. [EventStore#3858](https://github.com/EventStore/EventStore/pull/3858)
+
+### Fixed
+- Improved synchronization during TFChunk disposal. [EventStore#3674](https://github.com/EventStore/EventStore/pull/3674)
+- Fix projection progress report. [EventStore#3655](https://github.com/EventStore/EventStore/pull/3655)
+- FilteredAllSubscription checkpoint now continues to update after becomming live. [EventStore#3726](https://github.com/EventStore/EventStore/pull/3726)
+- (EventStore.TestClient) Too strict cleanup condition causing a memory leak in rare cases when server becomes unresponsive. [EventStore#3705](https://github.com/EventStore/EventStore/pull/3705)
+- (EventStore.TestClient) Cancelation of current command. [EventStore#3705](https://github.com/EventStore/EventStore/pull/3705)
+- Use a separate IODispatcher for scavenge log. [EventStore#3741](https://github.com/EventStore/EventStore/pull/3741)
+- Don't require an equals sign when parsing a command line argument followed by an integer. [EventStore#3757](https://github.com/EventStore/EventStore/pull/3757)
+- Ignore exceptions when failing to change PTable index file permissions. [EventStore#3807](https://github.com/EventStore/EventStore/pull/3807)
+- Correctly put a projection in the faulted state if the last event in the checkpoint stream is not a checkpoint. [EventStore#3816](https://github.com/EventStore/EventStore/pull/3816)
+- Handle events that have been deleted from (now empty) chunks but not from the index. [EventStore#3813](https://github.com/EventStore/EventStore/pull/3813)
+- Race condition in ManagedProjection code when deleting a projection. [EventStore#3812](https://github.com/EventStore/EventStore/pull/3812)
+- Don't throw an error in projections if projection substreams (e.g. emitted streams, checkpoint streams etc.) do not exist when deleting a projection. [EventStore#3812](https://github.com/EventStore/EventStore/pull/3812)
+- Only log that a connection to a persistent subscription has been dropped if there was a subscription running on the TCP connection. [EventStore#3824](https://github.com/EventStore/EventStore/pull/3824)
+- Do not change the handlerType of a projection when it is updated. [EventStore#3823](https://github.com/EventStore/EventStore/pull/3823)
+- WrongExpectedVersion error in projections when multiple projection write requests arrive within a short period (create-create, create-delete, delete-create, delete-delete). [EventStore#3817](https://github.com/EventStore/EventStore/pull/3817)
+- (EventStore.TestClient) Only call `context.Success()` once to prevent early exit of command. [EventStore#3828](https://github.com/EventStore/EventStore/pull/3828)
+- Prevent risk of implicit transactions being partially written when crossing a chunk boundary on the leader node. [EventStore#3808](https://github.com/EventStore/EventStore/pull/3808)
+- Bump reference of System.Security.Cryptography.Pkcs for CVE-2023-29331 [EventStore#3878](https://github.com/EventStore/EventStore/pull/3878)
+- Bump transitive reference of System.Security.Cryptography.Pkcs from 7.0.2. [EventStore#3877](https://github.com/EventStore/EventStore/pull/3877)
+- Bump `System.Security.Cryptography.Pkcs` from 7.0.1 to 7.0.2. [EventStore#3874](https://github.com/EventStore/EventStore/pull/3874)
+- Fix IsExportable check for dev certs when unning EventStore with `--dev` on Windows. [EventStore#3875](https://github.com/EventStore/EventStore/pull/3875)
+- Support bloom filters for 400gb+ index files. [EventStore#3876](https://github.com/EventStore/EventStore/pull/3876)
+- Bump gRPC packages for [CVE-2023-32731](https://nvd.nist.gov/vuln/detail/CVE-2023-32731) [EventStore#3889](https://github.com/EventStore/EventStore/pull/3889)
+- Projections throw an out of order error for Progress changed. [EventStore#3887](https://github.com/EventStore/EventStore/pull/3887)
+- Calling the admin/reloadconfig endpoint only reloaded/updated the LogLevel and the certificates were not updated on reloading the config.  [EventStore#3868](https://github.com/EventStore/EventStore/pull/3868)
+- Bump gRPC packages for [CVE-2023-32731](https://nvd.nist.gov/vuln/detail/CVE-2023-32731) [EventStore#3895](https://github.com/EventStore/EventStore/pull/3895)
+- Make Process CPU a UpDownCounter rather than Counter. [EventStore#3892](https://github.com/EventStore/EventStore/pull/3892)
+- Bump gRPC packages for [CVE-2023-32731](https://github.com/advisories/GHSA-cfgp-2977-2fmm) [EventStore#3893](https://github.com/EventStore/EventStore/pull/3893)
+- Bump System.Text.RegularExpressions for [CVE-2019-0820](https://github.com/advisories/GHSA-cmhx-cq75-c4mj) [EventStore#3893](https://github.com/EventStore/EventStore/pull/3893)
+- Bump System.Drawing.Common [CVE-2021-24112](https://github.com/advisories/GHSA-rxg9-xrhp-64gj) [EventStore#3893](https://github.com/EventStore/EventStore/pull/3893)
+- Bump System.Security.Cryptography.* [CVE-2022-34716](https://github.com/advisories/GHSA-2m65-m22p-9wjw) [EventStore#3893](https://github.com/EventStore/EventStore/pull/3893)
+- Prevent invalid message timeouts from being set in persistent subscriptions UI. [EventStore#3906](https://github.com/EventStore/EventStore/pull/3906)
+- Incorrect number of behind messages in the persistent subscriptions UI. [EventStore#3906](https://github.com/EventStore/EventStore/pull/3906)
+- Improve test stability [EventStore#3908](https://github.com/EventStore/EventStore/pull/3908)
+- Options API correctly hides the values of the newly-added sensitive options [EventStore#3911](https://github.com/EventStore/EventStore/pull/3911)
+- Ignore unknown options when dumping startup configuration [EventStore#3917](https://github.com/EventStore/EventStore/pull/3917)
+- Sender of create / update Persistent Subscription now notified of failure [EventStore#3747](https://github.com/EventStore/EventStore/pull/3747)
+
+### Added
+- Error message when user performs an CRUD operation to $all stream using HTTP API. [EventStore#3830](https://github.com/EventStore/EventStore/pull/3830)
+- Source generator for dynamic message type ids. [EventStore#3684](https://github.com/EventStore/EventStore/pull/3684)
+- Checkpoints metric. [EventStore#3685](https://github.com/EventStore/EventStore/pull/3685)
+- Metric for tracking the current state of the Node. [EventStore#3686](https://github.com/EventStore/EventStore/pull/3686)
+- Metric for tracking the current state of the Scavenge. [EventStore#3686](https://github.com/EventStore/EventStore/pull/3686)
+- Metric for tracking the current state of the Index operations (merge/scavenge). [EventStore#3686](https://github.com/EventStore/EventStore/pull/3686)
+- Histograms for gRPC reads and appends. [EventStore#3695](https://github.com/EventStore/EventStore/pull/3695)
+- A process-wide stopwatch for measuring durations. [EventStore#3703](https://github.com/EventStore/EventStore/pull/3703)
+- (EventStore.TestClient) Log errors for gRPC write flood. [EventStore#3705](https://github.com/EventStore/EventStore/pull/3705)
+- Implement Init/Rebuild index status report. [EventStore#3707](https://github.com/EventStore/EventStore/pull/3707)
+- Max queue durations over period per queue. [EventStore#3698](https://github.com/EventStore/EventStore/pull/3698)
+- Queue Processing Duration Histograms by Message Type. [EventStore#3730](https://github.com/EventStore/EventStore/pull/3730)
+- Improved warning when using an invalid delimiter in gossip seed. [EventStore#3757](https://github.com/EventStore/EventStore/pull/3757)
+- Deprecation warnings for UnsafeIgnoreHardDeletes and AlwaysKeepsScavenged. [EventStore#3778](https://github.com/EventStore/EventStore/pull/3778)
+- The ability to set default admin and ops passwords on first run of the database. [EventStore#3738](https://github.com/EventStore/EventStore/pull/3738)
+- Suggestions for unknown/invalid configuration parameters. [EventStore#3785](https://github.com/EventStore/EventStore/pull/3785)
+- Inauguration status tracker. [EventStore#3699](https://github.com/EventStore/EventStore/pull/3699)
+- Support for unix sockets. [EventStore#3713](https://github.com/EventStore/EventStore/pull/3713)
+- APIs for external redaction. [EventStore#3713](https://github.com/EventStore/EventStore/pull/3713)
+- Default location for trusted root certs. [EventStore#3811](https://github.com/EventStore/EventStore/pull/3811)
+- ES version in gossip message between nodes. [EventStore#3792](https://github.com/EventStore/EventStore/pull/3792)
+- Every node will monitor versions of other alive nodes; if version mismatch detected in cluster, nodes will log this. [EventStore#3792](https://github.com/EventStore/EventStore/pull/3792)
+- "/gossip" endpoint will also have ES version info.  [EventStore#3792](https://github.com/EventStore/EventStore/pull/3792)
+- Handle redacted events in AtomPub. [EventStore#3793](https://github.com/EventStore/EventStore/pull/3793)
+- Options to restrict EventStoreDB access for anonymous users. [EventStore#3787](https://github.com/EventStore/EventStore/pull/3787)
+- Metrics for count of events being read/written and bytes being read. [EventStore#3737](https://github.com/EventStore/EventStore/pull/3737)
+- Metrics for current/total/failed grpc calls. [EventStore#3825](https://github.com/EventStore/EventStore/pull/3825)
+- Log of telemetry configuration on startup. [EventStore#3835](https://github.com/EventStore/EventStore/pull/3835)
+- Chunk and StreamInfo cache hits/misses metrics. [EventStore#3829](https://github.com/EventStore/EventStore/pull/3829)
+- Storage writer flush size/duration metrics. [EventStore#3827](https://github.com/EventStore/EventStore/pull/3827)
+- Support for per projection execution timeout. [EventStore#3831](https://github.com/EventStore/EventStore/pull/3831)
+- Add system, process, and connection metrics. [EventStore#3777](https://github.com/EventStore/EventStore/pull/3777)
+- Add paged bytes, virtual bytes, and thread pool tasks queue length metrics. [EventStore#3838](https://github.com/EventStore/EventStore/pull/3838)
+- Context when logging the telemetry config. [EventStore#3845](https://github.com/EventStore/EventStore/pull/3845)
+- Collect count, size and capacity metrics from DynamicCacheManager. [EventStore#3840](https://github.com/EventStore/EventStore/pull/3840)
+- Metric for queue busy/idle. [EventStore#3841](https://github.com/EventStore/EventStore/pull/3841)
+- Add CG max Execution Engine Suspension duration. [EventStore#3842](https://github.com/EventStore/EventStore/pull/3842)
+- (EventStore.TestClient) Read $all command `RDALLGRPC`. [EventStore#3828](https://github.com/EventStore/EventStore/pull/3828)
+- Log EventStore version every 12 hours so that the version is logged in every log file. [EventStore#3853](https://github.com/EventStore/EventStore/pull/3853) and [EventStore#3882](https://github.com/EventStore/EventStore/pull/3882)
+- Based on header of the private key file, ES will now accept encrypted and unencrypted PKCS8 private key files. [EventStore#3851](https://github.com/EventStore/EventStore/pull/3851)
+- Support for the FIPS commercial plugin. [EventStore#3846](https://github.com/EventStore/EventStore/pull/3846)
+- Polishing new metrics. [EventStore#3879](https://github.com/EventStore/EventStore/pull/3879)
+- Show MiniNode logs in case test fails. [EventStore#3866](https://github.com/EventStore/EventStore/pull/3866)
+- Allow setting projection execution timeout per projection through the UI. [EventStore#3906](https://github.com/EventStore/EventStore/pull/3906)
+- Log error message for commonName mismatch when nodes gossip with each other. [EventStore#3814](https://github.com/EventStore/EventStore/pull/3814)
+- Log warnings and errors when close to the max chunk number limit. [EventStore#3643](https://github.com/EventStore/EventStore/pull/3643)
+- Log a warning if something is blocking the connection between nodes. [EventStore#3839](https://github.com/EventStore/EventStore/pull/3839)
+- Log a warning when certificates are close to expiry. [EventStore#3855](https://github.com/EventStore/EventStore/pull/3855)
+- New 'OverrideAnonymousGossipAccess' option which will override the 'AllowAnonymousEndpiontAccess' setting for the gossip endpoint when set to true. [EventStore#3920](https://github.com/EventStore/EventStore/pull/3920)
+
+### Changed
+- Dump configuration settings in their respective groupings at startup. [EventStore#3752](https://github.com/EventStore/EventStore/pull/3752)
+- Log more readable error message in the server logs when the SSL handshakes fail. [EventStore#3832](https://github.com/EventStore/EventStore/pull/3832)
+- Improved log message for connectivity problem between nodes. [EventStore#3839](https://github.com/EventStore/EventStore/pull/3839)
+- Update log level to Warning if AllowUnknownOptions sets to true. [EventStore#3848](https://github.com/EventStore/EventStore/pull/3848)
+- Lower the log level of NACK logs for persistent subscriptions. [EventStore#3854](https://github.com/EventStore/EventStore/pull/3854)
+- Update UI build after latest changes. [EventStore#3683](https://github.com/EventStore/EventStore/pull/3683)
+- Publish messages from the persistent subscriptions IODispatcher to the Persistent Subscriptions queue rather than the main queue. [EventStore#3702](https://github.com/EventStore/EventStore/pull/3702)
+- CI Unit test settings. [EventStore#3712](https://github.com/EventStore/EventStore/pull/3712)
+- (EventStore.TestClient) Log available commands separately. [EventStore#3705](https://github.com/EventStore/EventStore/pull/3705)
+- Adjustments to reduce allocations. [EventStore#3731](https://github.com/EventStore/EventStore/pull/3731)
+- (EventStore.TestClient) Support specifying values with a metric prefix with the `testclient`. [EventStore#3748](https://github.com/EventStore/EventStore/pull/3748)
+- Update Jint library version to 3.0.0-beta-2048. [EventStore#3788](https://github.com/EventStore/EventStore/pull/3788)
+- Minor adjustments in solution file. [EventStore#3798](https://github.com/EventStore/EventStore/pull/3798)
+- Move metric configuration from arrays to dictionaries. [EventStore#3837](https://github.com/EventStore/EventStore/pull/3837)
+- IO metrics using Counter instrument to ObservableCounter instrument. [EventStore#3834](https://github.com/EventStore/EventStore/pull/3834)
+- Use `$GITHUB_OUTPUT` for workflow output. [EventStore#3833](https://github.com/EventStore/EventStore/pull/3833)
+- Use latest `actions/checkout@v3`. [EventStore#3833](https://github.com/EventStore/EventStore/pull/3833)
+- Disable queue processing metrics by default, they add a lot of histograms. [EventStore#3850](https://github.com/EventStore/EventStore/pull/3850)
+- Update help output so that it matches the documentation. [EventStore#3904](https://github.com/EventStore/EventStore/pull/3904)
+
+### Removed
+- Remove options dump from server logs incase the config is incorrect. [EventStore#3847](https://github.com/EventStore/EventStore/pull/3847)
+- Unnecessary allocation on read. [EventStore#3691](https://github.com/EventStore/EventStore/pull/3691)
+- Some redundant code. [EventStore#3709](https://github.com/EventStore/EventStore/pull/3709)
+- Cleanup V8 scripts. [EventStore#3740](https://github.com/EventStore/EventStore/pull/3740)
+- Some logging to prevent flooding of console/logs. [EventStore#3828](https://github.com/EventStore/EventStore/pull/3828)
+- Software licenses we no longer depend on. [EventStore#3885](https://github.com/EventStore/EventStore/pull/3885)
+
+## [22.10.2] - 2023-05-15
+
+### Fixed
+- Handle events that have been deleted from (now empty) chunks but not from the index [EventStore#3813](https://github.com/EventStore/EventStore/pull/3813)
+- Sender of create / update Persistent Subscription now notified of failure [EventStore#3747](https://github.com/EventStore/EventStore/pull/3747)
+
+### Added
+- Deprecation warnings for UnsafeIgnoreHardDeletes and AlwaysKeepsScavenged [EventStore#3778](https://github.com/EventStore/EventStore/pull/3778)
 
 ## [22.10.1] - 2023-02-13
 
@@ -214,7 +659,7 @@ All notable changes to this project will be documented in this file.
 
 ## [21.10.7] - 2022-07-29
 
-## Fixed
+### Fixed
 
 - Prevent gRPC subscriptions from hanging while catching up [EventStore#3532](https://github.com/EventStore/EventStore/pull/3532)
 - Fix "Known" and "Current" values showing as NaN in Persistent Subscriptions Commercial UI

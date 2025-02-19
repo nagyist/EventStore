@@ -1,4 +1,7 @@
-﻿using System;
+// Copyright (c) Kurrent, Inc and/or licensed to Kurrent, Inc under one or more agreements.
+// Kurrent, Inc licenses this file to you under the Kurrent License v1 (see LICENSE.md).
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -12,6 +15,7 @@ using NUnit.Framework;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using EventStore.Plugins.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 
@@ -27,7 +31,7 @@ namespace EventStore.Core.Tests.Services.Transport.Http.Authentication {
 
 			protected static HttpContext CreateTestEntityWithCredentials(string username, string password) {
 				var context = new DefaultHttpContext();
-				context.Request.Headers.Add("authorization",
+				context.Request.Headers.Append("authorization",
 					"Basic " + Convert.ToBase64String(Encoding.ASCII.GetBytes($"{username}:{password}")));
 				return context;
 			}

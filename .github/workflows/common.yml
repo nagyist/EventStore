@@ -9,9 +9,10 @@ on:
   push:
     branches:
       - master
-      - release/oss-v*
+      - release/*
     tags:
       - oss-v*
+      - v*
     paths-ignore:
       - "docs/**"
       - "samples/**"
@@ -23,11 +24,11 @@ jobs:
     name: ci/github/scan-vulnerabilities
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
-    - name: Install net6.0
+      uses: actions/checkout@v4
+    - name: Install net8.0
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: 8.0.x
     - name: Scan for Vulnerabilities
       run: |
         cd src
@@ -39,7 +40,7 @@ jobs:
     name: ci/github/protolock
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Protolock Status
       shell: bash
       run: |
@@ -49,7 +50,7 @@ jobs:
     name: ci/github/docker-compose
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Github Registry Docker Login
       uses: azure/docker-login@v1
       with:
@@ -58,8 +59,8 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: Docker Compose Smoke Test
       run: |
-        docker-compose build
-        docker-compose up --detach
+        docker compose build
+        docker compose up --detach
         printf 'Waiting for cluster'
         timeout 60 bash -c -- 'until $(curl --output /dev/null --silent --insecure --fail https://localhost:2113/health/live); do printf '.'; sleep 2; done'
-        docker-compose down
+        docker compose down

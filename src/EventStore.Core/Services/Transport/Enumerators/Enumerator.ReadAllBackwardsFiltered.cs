@@ -7,6 +7,7 @@ using System.Security.Claims;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using EventStore.Common.Utils;
 using EventStore.Core.Bus;
 using EventStore.Core.Data;
 using EventStore.Core.Messages;
@@ -31,8 +32,8 @@ partial class Enumerator {
 		private readonly DateTime _deadline;
 		private readonly uint _maxSearchWindow;
 		private readonly CancellationToken _cancellationToken;
-		private readonly SemaphoreSlim _semaphore;
-		private readonly Channel<ReadResponse> _channel;
+		private readonly SemaphoreSlim _semaphore = new(1, 1);
+		private readonly Channel<ReadResponse> _channel = Channel.CreateBounded<ReadResponse>(BoundedChannelOptions);
 
 		private ReadResponse _current;
 
@@ -48,25 +49,15 @@ partial class Enumerator {
 			uint? maxSearchWindow,
 			DateTime deadline,
 			CancellationToken cancellationToken) {
-			if (bus == null) {
-				throw new ArgumentNullException(nameof(bus));
-			}
-
-			if (eventFilter == null) {
-				throw new ArgumentNullException(nameof(eventFilter));
-			}
-
-			_bus = bus;
+			_bus = Ensure.NotNull(bus);
 			_maxCount = maxCount;
 			_resolveLinks = resolveLinks;
-			_eventFilter = eventFilter;
+			_eventFilter = Ensure.NotNull(eventFilter);
 			_user = user;
 			_requiresLeader = requiresLeader;
 			_maxSearchWindow = maxSearchWindow ?? ReadBatchSize;
 			_deadline = deadline;
 			_cancellationToken = cancellationToken;
-			_semaphore = new SemaphoreSlim(1, 1);
-			_channel = Channel.CreateBounded<ReadResponse>(BoundedChannelOptions);
 
 			ReadPage(position);
 		}
@@ -105,8 +96,7 @@ partial class Enumerator {
 				}
 
 				if (message is not ClientMessage.FilteredReadAllEventsBackwardCompleted completed) {
-					_channel.Writer.TryComplete(
-						ReadResponseException.UnknownMessage.Create<ClientMessage.FilteredReadAllEventsBackwardCompleted>(message));
+					_channel.Writer.TryComplete(ReadResponseException.UnknownMessage.Create<ClientMessage.FilteredReadAllEventsBackwardCompleted>(message));
 					return;
 				}
 
@@ -117,6 +107,7 @@ partial class Enumerator {
 								_channel.Writer.TryComplete();
 								return;
 							}
+
 							await _channel.Writer.WriteAsync(new ReadResponse.EventReceived(@event), ct);
 							readCount++;
 						}
@@ -126,9 +117,7 @@ partial class Enumerator {
 							return;
 						}
 
-						ReadPage(Position.FromInt64(
-							completed.NextPos.CommitPosition,
-							completed.NextPos.PreparePosition), readCount);
+						ReadPage(Position.FromInt64(completed.NextPos.CommitPosition, completed.NextPos.PreparePosition), readCount);
 						return;
 					case FilteredReadAllResult.AccessDenied:
 						_channel.Writer.TryComplete(new ReadResponseException.AccessDenied());

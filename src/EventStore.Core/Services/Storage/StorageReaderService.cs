@@ -40,20 +40,18 @@ public class StorageReaderService<TStreamId> : StorageReaderService, IHandle<Sys
 		IInMemoryStreamReader inMemReader,
 		QueueStatsManager queueStatsManager,
 		QueueTrackers trackers) {
-		Ensure.NotNull(bus, "bus");
-		Ensure.NotNull(subscriber, "subscriber");
-		Ensure.NotNull(readIndex, "readIndex");
-		Ensure.NotNull(systemStreams, nameof(systemStreams));
-		Ensure.Positive(threadCount, "threadCount");
-		Ensure.NotNull(writerCheckpoint, "writerCheckpoint");
+		Ensure.NotNull(subscriber);
+		Ensure.NotNull(systemStreams);
+		Ensure.Positive(threadCount);
+		Ensure.NotNull(writerCheckpoint);
 
-		_bus = bus;
-		_readIndex = readIndex;
+		_bus = Ensure.NotNull(bus);
+		_readIndex = Ensure.NotNull(readIndex);
 		StorageReaderWorker<TStreamId>[] readerWorkers = new StorageReaderWorker<TStreamId>[threadCount];
 		InMemoryBus[] storageReaderBuses = new InMemoryBus[threadCount];
 		for (var i = 0; i < threadCount; i++) {
-			readerWorkers[i] = new StorageReaderWorker<TStreamId>(bus, readIndex, systemStreams, writerCheckpoint, inMemReader, i);
-			storageReaderBuses[i] = new InMemoryBus("StorageReaderBus", watchSlowMsg: false);
+			readerWorkers[i] = new(bus, readIndex, systemStreams, writerCheckpoint, inMemReader, i);
+			storageReaderBuses[i] = new("StorageReaderBus", watchSlowMsg: false);
 			storageReaderBuses[i].Subscribe<ClientMessage.ReadEvent>(readerWorkers[i]);
 			storageReaderBuses[i].Subscribe<ClientMessage.ReadStreamEventsBackward>(readerWorkers[i]);
 			storageReaderBuses[i].Subscribe<ClientMessage.ReadStreamEventsForward>(readerWorkers[i]);
@@ -69,7 +67,7 @@ public class StorageReaderService<TStreamId> : StorageReaderService, IHandle<Sys
 		_workersMultiHandler = new MultiQueuedHandler(
 			threadCount,
 			queueNum => new QueuedHandlerThreadPool(storageReaderBuses[queueNum],
-				string.Format("StorageReaderQueue #{0}", queueNum + 1),
+				$"StorageReaderQueue #{queueNum + 1}",
 				queueStatsManager,
 				trackers,
 				groupName: "StorageReaderQueue",
@@ -111,12 +109,12 @@ public class StorageReaderService<TStreamId> : StorageReaderService, IHandle<Sys
 	void IHandle<MonitoringMessage.InternalStatsRequest>.Handle(MonitoringMessage.InternalStatsRequest message) {
 		var s = _readIndex.GetStatistics();
 		var stats = new Dictionary<string, object> {
-			{"es-readIndex-cachedRecord", s.CachedRecordReads},
-			{"es-readIndex-notCachedRecord", s.NotCachedRecordReads},
-			{"es-readIndex-cachedStreamInfo", s.CachedStreamInfoReads},
-			{"es-readIndex-notCachedStreamInfo", s.NotCachedStreamInfoReads},
-			{"es-readIndex-cachedTransInfo", s.CachedTransInfoReads},
-			{"es-readIndex-notCachedTransInfo", s.NotCachedTransInfoReads},
+			{ "es-readIndex-cachedRecord", s.CachedRecordReads },
+			{ "es-readIndex-notCachedRecord", s.NotCachedRecordReads },
+			{ "es-readIndex-cachedStreamInfo", s.CachedStreamInfoReads },
+			{ "es-readIndex-notCachedStreamInfo", s.NotCachedStreamInfoReads },
+			{ "es-readIndex-cachedTransInfo", s.CachedTransInfoReads },
+			{ "es-readIndex-notCachedTransInfo", s.NotCachedTransInfoReads },
 		};
 
 		message.Envelope.ReplyWith(new MonitoringMessage.InternalStatsRequestResponse(stats));

@@ -20,27 +20,21 @@ public class ControllerAction {
 		string httpMethod,
 		ICodec[] requestCodecs,
 		ICodec[] responseCodecs,
-		Operation operation) :this(uriTemplate,httpMethod, requestCodecs, responseCodecs, _=>operation){
-
+		Operation operation) : this(uriTemplate, httpMethod, requestCodecs, responseCodecs, _ => operation) {
 	}
 
-	public ControllerAction(string uriTemplate,
+	public ControllerAction(
+		string uriTemplate,
 		string httpMethod,
 		ICodec[] requestCodecs,
 		ICodec[] responseCodecs,
 		Func<UriTemplateMatch, Operation> operation) {
-		Ensure.NotNull(uriTemplate, "uriTemplate");
-		Ensure.NotNull(httpMethod, "httpMethod");
-		Ensure.NotNull(requestCodecs, "requestCodecs");
-		Ensure.NotNull(responseCodecs, "responseCodecs");
-
-		UriTemplate = uriTemplate;
-		HttpMethod = httpMethod;
-
-		SupportedRequestCodecs = requestCodecs;
-		SupportedResponseCodecs = responseCodecs;
-		DefaultResponseCodec = responseCodecs.Length > 0 ? responseCodecs[0] : null;
+		UriTemplate = Ensure.NotNull(uriTemplate);
+		HttpMethod = Ensure.NotNull(httpMethod);
 		Operation = operation;
+		SupportedRequestCodecs = Ensure.NotNull(requestCodecs);
+		SupportedResponseCodecs = Ensure.NotNull(responseCodecs);
+		DefaultResponseCodec = responseCodecs.Length > 0 ? responseCodecs[0] : null;
 	}
 
 	public bool Equals(ControllerAction other) {

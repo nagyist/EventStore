@@ -59,13 +59,7 @@ internal partial class Streams<TStreamId> {
 				var data = proposedMessage.Data.ToByteArray();
 				var metadata = proposedMessage.CustomMetadata.ToByteArray();
 
-				if (!proposedMessage.Metadata.TryGetValue(Constants.Metadata.Type, out var eventType)) {
-					throw RpcExceptions.RequiredMetadataPropertyMissing(Constants.Metadata.Type);
-				}
-
-				if (!proposedMessage.Metadata.TryGetValue(Constants.Metadata.ContentType, out var contentType)) {
-					throw RpcExceptions.RequiredMetadataPropertyMissing(Constants.Metadata.ContentType);
-				}
+				var (isJson, eventType, properties) = MetadataHelpers.ParseGrpcMetadata(proposedMessage.Metadata);
 
 				var eventSize = Event.SizeOnDisk(eventType, data, metadata);
 				if (eventSize > _maxAppendEventSize) {
@@ -79,11 +73,13 @@ internal partial class Streams<TStreamId> {
 				}
 
 				events.Add(new Event(
-					Uuid.FromDto(proposedMessage.Id).ToGuid(),
-					eventType,
-					contentType == Constants.Metadata.ContentTypes.ApplicationJson,
-					data,
-					metadata));
+					eventId: Uuid.FromDto(proposedMessage.Id).ToGuid(),
+					eventType: eventType,
+					isJson: isJson,
+					data: data,
+					metadata: metadata,
+					properties: properties)
+				);
 			}
 
 			var appendResponseSource = new TaskCompletionSource<AppendResp>(TaskCreationOptions.RunContinuationsAsynchronously);

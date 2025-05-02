@@ -23,6 +23,7 @@ public class LogV3StreamRecord : LogV3Record<StringPayloadRecord<Raw.StreamHeade
 	// so we can see the stream name in the webui if we want
 	public ReadOnlyMemory<byte> Data => Record.Payload;
 	public ReadOnlyMemory<byte> Metadata => ReadOnlyMemory<byte>.Empty;
+	public ReadOnlyMemory<byte> Properties => ReadOnlyMemory<byte>.Empty;
 
 	public string StreamName => Record.StringPayload;
 	public StreamId StreamNumber => Record.SubHeader.ReferenceNumber;

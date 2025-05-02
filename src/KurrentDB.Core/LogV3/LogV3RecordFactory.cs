@@ -87,7 +87,12 @@ public class LogV3RecordFactory : IRecordFactory<StreamId> {
 		PrepareFlags flags,
 		StreamId eventType,
 		ReadOnlyMemory<byte> data,
-		ReadOnlyMemory<byte> metadata) {
+		ReadOnlyMemory<byte> metadata,
+		ReadOnlyMemory<byte> properties) {
+
+		if (properties.Length != 0) {
+			throw new ArgumentException("LogV3 does not support log record Properties");
+		}
 
 		var result = new LogV3StreamWriteRecord(
 			logPosition: logPosition,

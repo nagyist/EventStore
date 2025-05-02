@@ -62,7 +62,8 @@ public class ClientWriteTcpDispatcher : TcpDispatcher {
 			// ReSharper disable PossibleNullReferenceException
 			var e = dto.Events[i];
 			// ReSharper restore PossibleNullReferenceException
-			events[i] = new Event(new Guid(e.EventId.ToByteArray()), e.EventType, e.DataContentType == 1, e.Data.ToByteArray(), e.Metadata.ToByteArray());
+			events[i] = new Event(new Guid(e.EventId.ToByteArray()), e.EventType, e.DataContentType == 1,
+				e.Data.ToByteArray(), e.Metadata.ToByteArray(), e.Properties.ToByteArray());
 		}
 
 		var cts = new CancellationTokenSource();
@@ -86,7 +87,8 @@ public class ClientWriteTcpDispatcher : TcpDispatcher {
 				e.EventType,
 				e.IsJson ? 1 : 0,
 				0, e.Data,
-				e.Metadata);
+				e.Metadata,
+				e.Properties);
 		}
 
 		var dto = new WriteEvents(msg.EventStreamId, msg.ExpectedVersion, events,
@@ -179,7 +181,8 @@ public class ClientWriteTcpDispatcher : TcpDispatcher {
 			// ReSharper disable PossibleNullReferenceException
 			var e = dto.Events[i];
 			// ReSharper restore PossibleNullReferenceException
-			events[i] = new Event(new Guid(e.EventId.ToByteArray()), e.EventType, e.DataContentType == 1, e.Data.ToByteArray(), e.Metadata.ToByteArray());
+			events[i] = new Event(new Guid(e.EventId.ToByteArray()), e.EventType, e.DataContentType == 1,
+				e.Data.ToByteArray(), e.Metadata.ToByteArray(), e.Properties.ToByteArray());
 		}
 
 		return new(Guid.NewGuid(), package.CorrelationId, envelope, dto.RequireLeader, dto.TransactionId, events, user, package.Tokens);
@@ -189,7 +192,7 @@ public class ClientWriteTcpDispatcher : TcpDispatcher {
 		var events = new NewEvent[msg.Events.Length];
 		for (int i = 0; i < events.Length; ++i) {
 			var e = msg.Events[i];
-			events[i] = new(e.EventId.ToByteArray(), e.EventType, e.IsJson ? 1 : 0, 0, e.Data, e.Metadata);
+			events[i] = new(e.EventId.ToByteArray(), e.EventType, e.IsJson ? 1 : 0, 0, e.Data, e.Metadata, e.Properties);
 		}
 
 		var dto = new TransactionWrite(msg.TransactionId, events, msg.RequireLeader);

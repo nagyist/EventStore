@@ -11,7 +11,6 @@ using EventStore.Client;
 using EventStore.Client.Streams;
 using Google.Protobuf;
 using Grpc.Core;
-using KurrentDB.Core;
 using KurrentDB.Core.Data;
 using KurrentDB.Core.Metrics;
 using KurrentDB.Core.Services;
@@ -350,7 +349,7 @@ public static class ResponseConverter {
 		if (e == null)
 			return null;
 		var position = Position.FromInt64(commitPosition ?? -1, preparePosition ?? -1);
-		return new ReadEvent.Types.RecordedEvent {
+		var result = new ReadEvent.Types.RecordedEvent {
 			Id = uuidOption.ContentCase switch {
 				ReadReq.Types.Options.Types.UUIDOption.ContentOneofCase.String => new UUID {
 					String = e.EventId.ToString()
@@ -361,16 +360,11 @@ public static class ResponseConverter {
 			StreamRevision = StreamRevision.FromInt64(e.EventNumber),
 			CommitPosition = position.CommitPosition,
 			PreparePosition = position.PreparePosition,
-			Metadata = {
-				[Constants.Metadata.Type] = e.EventType,
-				[Constants.Metadata.Created] = e.TimeStamp.ToTicksSinceEpoch().ToString(),
-				[Constants.Metadata.ContentType] = e.IsJson
-					? Constants.Metadata.ContentTypes.ApplicationJson
-					: Constants.Metadata.ContentTypes.ApplicationOctetStream
-			},
 			Data = ByteString.CopyFrom(e.Data.Span),
 			CustomMetadata = ByteString.CopyFrom(e.Metadata.Span)
 		};
+		result.Metadata.AddGrpcMetadataFrom(e);
+		return result;
 	}
 
 	private static ReadEvent ConvertToReadEvent(ReadReq.Types.Options.Types.UUIDOption uuidOption, ResolvedEvent e) {

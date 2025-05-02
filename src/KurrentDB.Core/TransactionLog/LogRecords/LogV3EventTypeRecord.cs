@@ -21,6 +21,7 @@ public class LogV3EventTypeRecord : LogV3Record<StringPayloadRecord<Raw.EventTyp
 	// so we can see the event type in the webui if we want
 	public ReadOnlyMemory<byte> Data => Record.Payload;
 	public ReadOnlyMemory<byte> Metadata => ReadOnlyMemory<byte>.Empty;
+	public ReadOnlyMemory<byte> Properties => ReadOnlyMemory<byte>.Empty;
 
 	public string EventTypeName => Record.StringPayload;
 	public uint EventTypeNumber => Record.SubHeader.ReferenceNumber;

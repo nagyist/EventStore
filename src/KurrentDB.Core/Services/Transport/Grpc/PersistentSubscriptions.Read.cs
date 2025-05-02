@@ -14,7 +14,6 @@ using EventStore.Plugins.Authorization;
 using Google.Protobuf;
 using Grpc.Core;
 using KurrentDB.Common.Utils;
-using KurrentDB.Core;
 using KurrentDB.Core.Bus;
 using KurrentDB.Core.Data;
 using KurrentDB.Core.Messages;
@@ -126,7 +125,7 @@ internal partial class PersistentSubscriptions {
 			if (e == null)
 				return null;
 			var position = Position.FromInt64(commitPosition ?? -1, preparePosition ?? -1);
-			return new() {
+			var result = new ReadResp.Types.ReadEvent.Types.RecordedEvent {
 				Id = uuidOptionsCase switch {
 					ReadReq.Types.Options.Types.UUIDOption.ContentOneofCase.String => new UUID {
 						String = e.EventId.ToString()
@@ -137,16 +136,11 @@ internal partial class PersistentSubscriptions {
 				StreamRevision = StreamRevision.FromInt64(e.EventNumber),
 				CommitPosition = position.CommitPosition,
 				PreparePosition = position.PreparePosition,
-				Metadata = {
-					[Constants.Metadata.Type] = e.EventType,
-					[Constants.Metadata.Created] = e.TimeStamp.ToTicksSinceEpoch().ToString(),
-					[Constants.Metadata.ContentType] = e.IsJson
-						? Constants.Metadata.ContentTypes.ApplicationJson
-						: Constants.Metadata.ContentTypes.ApplicationOctetStream
-				},
 				Data = ByteString.CopyFrom(e.Data.Span),
 				CustomMetadata = ByteString.CopyFrom(e.Metadata.Span)
 			};
+			result.Metadata.AddGrpcMetadataFrom(e);
+			return result;
 		}
 
 		ReadResp.Types.ReadEvent ConvertToReadEvent((ResolvedEvent, int) _) {

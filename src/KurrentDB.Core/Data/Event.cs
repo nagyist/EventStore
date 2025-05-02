@@ -13,11 +13,13 @@ public class Event {
 	public readonly bool IsJson;
 	public readonly byte[] Data;
 	public readonly byte[] Metadata;
+	public readonly byte[] Properties;
 
-	public Event(Guid eventId, string eventType, bool isJson, string data, string metadata)
+	public Event(Guid eventId, string eventType, bool isJson, string data, string metadata, byte[] properties)
 		: this(
 			eventId, eventType, isJson, Helper.UTF8NoBom.GetBytes(data),
-			metadata != null ? Helper.UTF8NoBom.GetBytes(metadata) : null) {
+			metadata != null ? Helper.UTF8NoBom.GetBytes(metadata) : null,
+			properties) {
 	}
 
 	public static int SizeOnDisk(string eventType, byte[] data, byte[] metadata) =>
@@ -26,7 +28,7 @@ public class Event {
 	private static bool ExceedsMaximumSizeOnDisk(string eventType, byte[] data, byte[] metadata) =>
 		SizeOnDisk(eventType, data, metadata) > TFConsts.EffectiveMaxLogRecordSize;
 
-	public Event(Guid eventId, string eventType, bool isJson, byte[] data, byte[] metadata) {
+	public Event(Guid eventId, string eventType, bool isJson, byte[] data, byte[] metadata, byte[] properties) {
 		if (eventId == Guid.Empty)
 			throw new ArgumentException("Empty eventId provided.", nameof(eventId));
 		if (string.IsNullOrEmpty(eventType))
@@ -37,7 +39,8 @@ public class Event {
 		EventId = eventId;
 		EventType = eventType;
 		IsJson = isJson;
-		Data = data ?? Array.Empty<byte>();
-		Metadata = metadata ?? Array.Empty<byte>();
+		Data = data ?? [];
+		Metadata = metadata ?? [];
+		Properties = properties ?? [];
 	}
 }

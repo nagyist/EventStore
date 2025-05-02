@@ -11,7 +11,7 @@ namespace KurrentDB.Core.TransactionLog.LogRecords;
 // Use when parsing of a full prepare log record isn't required and only some bits need to be inspected.
 // Note that the data structure is not aligned, so performance may degrade if heavily accessing properties.
 // Designed to be reusable to avoid GC pressure when making a pass through the database.
-public struct PrepareLogRecordView {
+public readonly struct PrepareLogRecordView {
 	public byte Version { get; }
 	public long LogPosition => BitConverter.ToInt64(_record, 2);
 	public PrepareFlags Flags => (PrepareFlags)BitConverter.ToUInt16(_record, 10);
@@ -25,6 +25,7 @@ public struct PrepareLogRecordView {
 	public ReadOnlySpan<byte> EventType => _record.AsSpan(_eventTypeOffset, _eventTypeSize);
 	public ReadOnlySpan<byte> Data => _record.AsSpan(_dataOffset, _dataSize);
 	public ReadOnlySpan<byte> Metadata => _record.AsSpan(_metadataOffset, _metadataSize);
+	public ReadOnlySpan<byte> Properties => _record.AsSpan(_propertiesOffset, _propertiesSize);
 
 	private readonly byte[] _record;
 	private readonly int _length;
@@ -40,6 +41,8 @@ public struct PrepareLogRecordView {
 	private readonly int _dataOffset;
 	private readonly int _metadataSize;
 	private readonly int _metadataOffset;
+	private readonly int _propertiesSize;
+	private readonly int _propertiesOffset;
 
 	public PrepareLogRecordView(byte[] record, int length) {
 		if (!BitConverter.IsLittleEndian)
@@ -49,7 +52,7 @@ public struct PrepareLogRecordView {
 		_length = length;
 
 		Version = _record[1];
-		if (Version != LogRecordVersion.LogRecordV0 && Version != LogRecordVersion.LogRecordV1)
+		if (Version > PrepareLogRecordVersion.V2)
 			throw new ArgumentException(
 				$"PrepareRecord version {Version} is incorrect. Supported version: {PrepareLogRecord.PrepareRecordVersion}.");
 
@@ -91,6 +94,12 @@ public struct PrepareLogRecordView {
 		_metadataOffset = currentOffset;
 		currentOffset += _metadataSize;
 
+		if (Version >= PrepareLogRecordVersion.V2) {
+			_propertiesSize = Read7BitEncodedInt(_record.AsSpan(0, _length), ref currentOffset);
+			_propertiesOffset = currentOffset;
+			currentOffset += _propertiesSize;
+		}
+
 		if (currentOffset != _length) {
 			throw new ArgumentException($"Unexpected record length: {currentOffset}, expected: {_length}");
 		}
@@ -114,7 +123,8 @@ public struct PrepareLogRecordView {
 			   $"TimeStamp: {TimeStamp}, " +
 			   $"EventType: {Encoding.UTF8.GetString(EventType.ToArray())}, " +
 			   $"Data size: {Data.Length}, " +
-			   $"Metadata size: {Metadata.Length}";
+			   $"Metadata size: {Metadata.Length}, " +
+			   $"Properties size: {Properties.Length}";
 	}
 
 	// copied and adapted from https://github.com/microsoft/referencesource/blob/master/mscorlib/system/io/binaryreader.cs

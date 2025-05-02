@@ -28,6 +28,7 @@ public class EventRecord : IEquatable<EventRecord> {
 	public readonly string EventType;
 	public readonly ReadOnlyMemory<byte> Data;
 	public readonly ReadOnlyMemory<byte> Metadata;
+	public readonly ReadOnlyMemory<byte> Properties;
 
 	public EventRecord(long eventNumber, IPrepareLogRecord prepare, string eventStreamId, string eventType) {
 		Ensure.Nonnegative(eventNumber, "eventNumber");
@@ -47,6 +48,7 @@ public class EventRecord : IEquatable<EventRecord> {
 		EventType = eventType ?? string.Empty;
 		Data = prepare.Data;
 		Metadata = prepare.Metadata;
+		Properties = prepare.Properties;
 	}
 
 	// called from tests only
@@ -62,7 +64,8 @@ public class EventRecord : IEquatable<EventRecord> {
 		PrepareFlags flags,
 		string eventType,
 		byte[] data,
-		byte[] metadata) {
+		byte[] metadata,
+		byte[] properties) {
 		Ensure.Nonnegative(logPosition, "logPosition");
 		Ensure.Nonnegative(transactionPosition, "transactionPosition");
 		if (transactionOffset < -1)
@@ -85,6 +88,7 @@ public class EventRecord : IEquatable<EventRecord> {
 		EventType = eventType ?? string.Empty;
 		Data = data ?? Empty.ByteArray;
 		Metadata = metadata ?? Empty.ByteArray;
+		Properties = properties ?? Empty.ByteArray;
 	}
 
 	public bool Equals(EventRecord other) {
@@ -104,7 +108,8 @@ public class EventRecord : IEquatable<EventRecord> {
 			   && Flags.Equals(other.Flags)
 			   && string.Equals(EventType, other.EventType)
 			   && Data.Span.SequenceEqual(other.Data.Span)
-			   && Metadata.Span.SequenceEqual(other.Metadata.Span);
+			   && Metadata.Span.SequenceEqual(other.Metadata.Span)
+			   && Properties.Span.SequenceEqual(other.Properties.Span);
 	}
 
 	public override bool Equals(object obj) {
@@ -132,6 +137,7 @@ public class EventRecord : IEquatable<EventRecord> {
 			hashCode = (hashCode * 397) ^ EventType.GetHashCode();
 			hashCode = (hashCode * 397) ^ Data.GetHashCode();
 			hashCode = (hashCode * 397) ^ Metadata.GetHashCode();
+			hashCode = (hashCode * 397) ^ Properties.GetHashCode();
 			return hashCode;
 		}
 	}

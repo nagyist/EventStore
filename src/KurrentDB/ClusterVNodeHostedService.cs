@@ -36,6 +36,7 @@ using KurrentDB.Core.Services.PersistentSubscription.ConsumerStrategy;
 using KurrentDB.Core.Services.Transport.Http.Controllers;
 using KurrentDB.Diagnostics.LogsEndpointPlugin;
 using KurrentDB.PluginHosting;
+using KurrentDB.Plugins.Connectors;
 using KurrentDB.POC.ConnectedSubsystemsPlugin;
 using KurrentDB.Projections.Core;
 using KurrentDB.Security.EncryptionAtRest;
@@ -280,6 +281,7 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable {
 			plugins.Add(new ConnectedSubsystemsPlugin());
 			plugins.Add(new AutoScavengePlugin());
 			plugins.Add(new TcpApiPlugin());
+			plugins.Add(new ConnectorsPlugin());
 
 			foreach (var plugin in plugins) {
 				Log.Information("Loaded SubsystemsPlugin plugin: {plugin} {version}.",

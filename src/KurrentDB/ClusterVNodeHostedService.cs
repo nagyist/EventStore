@@ -39,6 +39,7 @@ using KurrentDB.PluginHosting;
 using KurrentDB.Plugins.Connectors;
 using KurrentDB.POC.ConnectedSubsystemsPlugin;
 using KurrentDB.Projections.Core;
+using KurrentDB.SecondaryIndexing;
 using KurrentDB.Security.EncryptionAtRest;
 using KurrentDB.TcpPlugin;
 using Microsoft.Extensions.Configuration;
@@ -105,6 +106,12 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable {
 				throw new InvalidConfigurationException($"Couldn't acquire exclusive lock on DB at '{_options.Database.Db}'.");
 		}
 
+		var secondaryIndexingPlugin = SecondaryIndexingPluginFactory.Create();
+		var subsystems = secondaryIndexingPlugin.GetSubsystems();
+		foreach (var subsystem in subsystems) {
+			options = options.WithPlugableComponent(subsystem);
+		}
+
 		_clusterNodeMutex = new ClusterNodeMutex();
 		if (!_clusterNodeMutex.Acquire())
 			throw new InvalidConfigurationException($"Couldn't acquire exclusive Cluster Node mutex '{_clusterNodeMutex.MutexName}'.");
@@ -119,16 +126,19 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable {
 
 
 		(_options, var authProviderFactory) = GetAuthorizationProviderFactory();
+
 		if (_options.Database.DbLogFormat == DbLogFormat.V2) {
 			var logFormatFactory = new LogV2FormatAbstractorFactory();
 			Node = ClusterVNode.Create(_options, logFormatFactory, GetAuthenticationProviderFactory(),
 				authProviderFactory,
+				secondaryIndexingPlugin.IndicesVirtualStreamReaders,
 				GetPersistentSubscriptionConsumerStrategyFactories(), certificateProvider,
 				configuration);
 		} else if (_options.Database.DbLogFormat == DbLogFormat.ExperimentalV3) {
 			var logFormatFactory = new LogV3FormatAbstractorFactory();
 			Node = ClusterVNode.Create(_options, logFormatFactory, GetAuthenticationProviderFactory(),
 				authProviderFactory,
+				secondaryIndexingPlugin.IndicesVirtualStreamReaders,
 				GetPersistentSubscriptionConsumerStrategyFactories(), certificateProvider,
 				configuration);
 		} else {

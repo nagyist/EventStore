@@ -18,7 +18,7 @@ public class when_write_stream_gets_timeout_after_cluster_commit : RequestManage
 	private long _prepareLogPosition = 100;
 	private long _commitPosition = 100;
 	protected override WriteEvents OnManager(FakePublisher publisher) {
-		return new WriteEvents(
+		return WriteEvents.ForSingleStream(
 			publisher,
 			CommitTimeout,
 			Envelope,
@@ -26,13 +26,13 @@ public class when_write_stream_gets_timeout_after_cluster_commit : RequestManage
 			ClientCorrId,
 			"test123",
 			ExpectedVersion.Any,
-			new[] { DummyEvent() },
+			new(DummyEvent()),
 			CommitSource);
 	}
 
 	protected override IEnumerable<Message> WithInitialMessages() {
 		yield return new StorageMessage.PrepareAck(InternalCorrId, _prepareLogPosition, PrepareFlags.SingleWrite | PrepareFlags.Data);
-		yield return new StorageMessage.CommitIndexed(InternalCorrId, _commitPosition, 1, 0, 0);
+		yield return StorageMessage.CommitIndexed.ForSingleStream(InternalCorrId, _commitPosition, 1, 0, 0);
 		yield return new ReplicationTrackingMessage.ReplicatedTo(_commitPosition);
 	}
 

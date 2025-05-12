@@ -16,7 +16,7 @@ namespace KurrentDB.Core.Tests.Services.RequestManagement.WriteStreamMgr;
 public class when_write_stream_gets_already_committed_and_log_is_not_committed : RequestManagerSpecification<WriteEvents> {
 	private long _commitLogPosition = 1000;
 	protected override WriteEvents OnManager(FakePublisher publisher) {
-		return new WriteEvents(
+		return WriteEvents.ForSingleStream(
 			publisher,
 			CommitTimeout,
 			Envelope,
@@ -24,7 +24,7 @@ public class when_write_stream_gets_already_committed_and_log_is_not_committed :
 			ClientCorrId,
 			"test123",
 			ExpectedVersion.Any,
-			new[] { DummyEvent() },
+			new(DummyEvent()),
 			CommitSource);
 	}
 
@@ -33,7 +33,7 @@ public class when_write_stream_gets_already_committed_and_log_is_not_committed :
 	}
 
 	protected override Message When() {
-		return new StorageMessage.AlreadyCommitted(InternalCorrId, "test123", 0, 1, _commitLogPosition);
+		return StorageMessage.AlreadyCommitted.ForSingleStream(InternalCorrId, "test123", 0, 1, _commitLogPosition);
 	}
 
 	[Test]

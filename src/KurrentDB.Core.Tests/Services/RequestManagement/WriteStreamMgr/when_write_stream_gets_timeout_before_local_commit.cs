@@ -15,7 +15,7 @@ namespace KurrentDB.Core.Tests.Services.RequestManagement.WriteStreamMgr;
 [TestFixture]
 public class when_write_stream_gets_timeout_before_local_commit : RequestManagerSpecification<WriteEvents> {
 	protected override WriteEvents OnManager(FakePublisher publisher) {
-		return new WriteEvents(
+		return WriteEvents.ForSingleStream(
 			publisher,
 			CommitTimeout,
 			Envelope,
@@ -23,7 +23,7 @@ public class when_write_stream_gets_timeout_before_local_commit : RequestManager
 			ClientCorrId,
 			"test123",
 			ExpectedVersion.Any,
-			new[] { DummyEvent() },
+			new(DummyEvent()),
 			CommitSource);
 	}
 

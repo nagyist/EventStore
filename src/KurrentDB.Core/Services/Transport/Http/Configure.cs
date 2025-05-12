@@ -349,7 +349,7 @@ public static class Configure {
 			case ClientMessage.WriteEventsCompleted msg:
 				switch (msg.Result) {
 					case OperationResult.Success:
-						var location = HostName.Combine(entity.ResponseUrl, "/streams/{0}/{1}", Uri.EscapeDataString(eventStreamId), msg.FirstEventNumber);
+						var location = HostName.Combine(entity.ResponseUrl, "/streams/{0}/{1}", Uri.EscapeDataString(eventStreamId), msg.FirstEventNumbers.Single);
 						return new(HttpStatusCode.Created, "Created", ContentType.PlainText, new KeyValuePair<string, string>("Location", location));
 					case OperationResult.PrepareTimeout:
 					case OperationResult.CommitTimeout:
@@ -358,8 +358,8 @@ public static class Configure {
 					case OperationResult.WrongExpectedVersion:
 						return new(HttpStatusCode.BadRequest, "Wrong expected EventNumber",
 							ContentType.PlainText,
-							new KeyValuePair<string, string>(SystemHeaders.CurrentVersion, msg.CurrentVersion.ToString()),
-							new KeyValuePair<string, string>(SystemHeaders.LegacyCurrentVersion, msg.CurrentVersion.ToString()));
+							new KeyValuePair<string, string>(SystemHeaders.CurrentVersion, msg.FailureCurrentVersions.Single.ToString()),
+							new KeyValuePair<string, string>(SystemHeaders.LegacyCurrentVersion, msg.FailureCurrentVersions.Single.ToString()));
 					case OperationResult.StreamDeleted:
 						return Gone("Stream deleted");
 					case OperationResult.InvalidTransaction:

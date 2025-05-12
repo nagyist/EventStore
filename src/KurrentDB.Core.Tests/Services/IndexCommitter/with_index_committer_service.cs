@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using KurrentDB.Common.Utils;
 using KurrentDB.Core.Bus;
 using KurrentDB.Core.Index;
 using KurrentDB.Core.Messages;
@@ -106,12 +107,12 @@ public class FakeIndexCommitter<TStreamId> : IIndexCommitter<TStreamId> {
 		return new(0L);
 	}
 
-	public ValueTask<long> Commit(IReadOnlyList<IPrepareLogRecord<TStreamId>> committedPrepares, bool isTfEof, bool cacheLastEventNumber, CancellationToken token) {
+	public ValueTask Commit(IReadOnlyList<IPrepareLogRecord<TStreamId>> committedPrepares, int numStreams, LowAllocReadOnlyMemory<int>? eventStreamIndexes, bool isTfEof, bool cacheLastEventNumber, CancellationToken token) {
 		foreach (var prepare in committedPrepares) {
 			CommittedPrepares.Enqueue(prepare);
 		}
 
-		return new(0L);
+		return ValueTask.CompletedTask;
 	}
 
 	public ValueTask<long> GetCommitLastEventNumber(CommitLogRecord commit, CancellationToken token) => new(0L);

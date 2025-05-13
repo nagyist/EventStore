@@ -11,14 +11,15 @@ using Google.Protobuf;
 using Grpc.Core;
 using KurrentDB.Core.Messaging;
 using KurrentDB.Core.Services.Transport.Grpc;
+using KurrentDB.Protobuf.Server;
 using KurrentDB.Protocol.V2;
 using Xunit;
 
 namespace KurrentDB.Core.XUnit.Tests.Services.Transport.Grpc;
 
 public class MSARequestConverterTests {
-	const int TestMaxAppendSize = 150;
-	const int TestMaxAppendEventSize = 100;
+	const int TestMaxAppendSize = 400;
+	const int TestMaxAppendEventSize = 300;
 
 	private readonly MSARequestConverter _sut = new(
 		maxAppendSize: TestMaxAppendSize,
@@ -190,7 +191,7 @@ public class MSARequestConverterTests {
 		});
 
 		// then
-		Assert.Equal($"Event with Id: {eventId}, Size: 116, exceeds Maximum Append Event Size of 100.", ex.Status.Detail);
+		Assert.Equal($"Event with Id: {eventId}, Size: 316, exceeds Maximum Append Event Size of 300.", ex.Status.Detail);
 		Assert.Equal(StatusCode.InvalidArgument, ex.Status.StatusCode);
 	}
 
@@ -234,7 +235,7 @@ public class MSARequestConverterTests {
 		});
 
 		// then
-		Assert.Equal("Maximum Append Size of 150 Exceeded.", ex.Status.Detail);
+		Assert.Equal("Maximum Append Size of 400 Exceeded.", ex.Status.Detail);
 		Assert.Equal(StatusCode.InvalidArgument, ex.Status.StatusCode);
 	}
 
@@ -286,6 +287,9 @@ public class MSARequestConverterTests {
 				{ Constants.Properties.EventType, new() { BytesValue = ByteString.CopyFromUtf8("my-event-type") } },
 				{ Constants.Properties.DataFormat, new() { BytesValue = ByteString.CopyFromUtf8(dataFormat) } },
 				{ Constants.Properties.LegacyMetadata, new() { BytesValue = ByteString.CopyFromUtf8("""{ "foo": "bar" }""") } },
+				{ "property1", new() { BooleanValue = true } },
+				{ "property2", new() { StringValue = "test" } },
+				{ "property3", new() { Int32Value = 1234 } },
 			},
 		};
 
@@ -298,7 +302,19 @@ public class MSARequestConverterTests {
 		Assert.Equal(expectedIsJson, output.IsJson);
 		Assert.Equal(Encoding.UTF8.GetBytes("the-data"), output.Data);
 		Assert.Equal(Encoding.UTF8.GetBytes("""{ "foo": "bar" }"""), output.Metadata);
-		// todo: properties once they are supported by the event
+
+		var properties = Properties.Parser.ParseFrom(output.Properties);
+
+		Assert.Equal(3, properties.PropertiesValues.Count);
+
+		properties.PropertiesValues.TryGetValue("property1", out var property1);
+		Assert.True(property1!.BooleanValue);
+
+		properties.PropertiesValues.TryGetValue("property2", out var property2);
+		Assert.Equal("test", property2!.StringValue);
+
+		properties.PropertiesValues.TryGetValue("property3", out var property3);
+		Assert.Equal(1234, property3!.Int32Value);
 	}
 
 	[Fact]

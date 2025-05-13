@@ -6,11 +6,13 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Security.Claims;
 using System.Threading;
+using Google.Protobuf;
 using Grpc.Core;
 using KurrentDB.Core.Data;
 using KurrentDB.Core.Messages;
 using KurrentDB.Core.Messaging;
 using KurrentDB.Protobuf;
+using KurrentDB.Protobuf.Server;
 using KurrentDB.Protocol.V2;
 
 namespace KurrentDB.Core.Services.Transport.Grpc;
@@ -77,8 +79,7 @@ public class MSARequestConverter {
 				var evt = ConvertRecord(appendRecord);
 
 				// todo: consider if these two size related exceptions ought to be non-exceptional
-				// todo: account for properties here once we store them
-				var eventSize = Event.SizeOnDisk(evt.EventType, evt.Data, evt.Metadata);
+				var eventSize = Event.SizeOnDisk(evt.EventType, evt.Data, evt.Metadata, evt.Properties);
 				if (eventSize > _maxAppendEventSize) {
 					throw RpcExceptions.MaxAppendEventSizeExceeded(evt.EventId.ToString(), eventSize, _maxAppendEventSize);
 				}
@@ -137,13 +138,25 @@ public class MSARequestConverter {
 			? metadataValue.BytesValue.ToByteArray()
 			: [];
 
+		Properties properties = null;
+		foreach (var property in appendRecord.Properties) {
+			if (property.Key
+				is Constants.Properties.LegacyMetadata
+				or Constants.Properties.EventType
+				or Constants.Properties.DataFormat)
+				continue;
+
+			properties ??= new Properties();
+			properties.PropertiesValues.Add(property.Key, property.Value);
+		}
+
 		var evt = new Event(
 			eventId: eventId,
 			eventType: eventTypeString,
 			isJson: contentTypeString == Constants.Properties.DataFormats.Json,
 			data: appendRecord.Data.ToByteArray(),
 			metadata: metadata,
-			properties: []);
+			properties: properties?.ToByteArray() ?? []);
 		return evt;
 	}
 

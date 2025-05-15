@@ -5,9 +5,10 @@
 
 using System.Runtime;
 using KurrentDB.Common.Utils;
+using FluentValidation;
+using FluentValidation.Results;
 using Kurrent.Surge;
 using Kurrent.Surge.Connectors.Sinks;
-using Kurrent.Toolkit;
 using Microsoft.Extensions.Configuration;
 using Serilog;
 using Serilog.Core;
@@ -33,7 +34,7 @@ public class SerilogSink : ISink {
                 Version  = Environment.OSVersion.VersionString,
                 Platform = RuntimeInformation.OsPlatform
             }, true)
-            .Enrich.WithProperty("KurrentDB", new {
+            .Enrich.WithProperty("EventStoreDB", new {
                 VersionInfo.Version,
                 VersionInfo.CommitSha,
                 VersionInfo.Timestamp
@@ -45,8 +46,8 @@ public class SerilogSink : ISink {
                 LogPosition = x.Position.LogPosition.CommitPosition.ToString(),
                 IsRedacted  = x.IsRedacted,
                 SchemaInfo  = new {
-                    Subject     = x.SchemaInfo.Subject,
-                    SchemaType  = x.SchemaInfo.SchemaType,
+                    Subject     = x.SchemaInfo.SchemaName,
+                    SchemaType  = x.SchemaInfo.SchemaDataFormat,
                     ContentType = x.SchemaInfo.ContentType
                 },
                 Headers      = x.Headers.WithoutSchemaInfo(),
@@ -116,39 +117,24 @@ public record SerilogSinkOptions : SinkOptions {
 [PublicAPI]
 public class SerilogSinkValidator : SinkConnectorValidator<SerilogSinkOptions> {
     public SerilogSinkValidator() {
-        // When(x => x.HasConfiguration, () => RuleFor(x => x)
-        //     .Custom((options, ctx) => {
-        //         if (!options.DecodeConfiguration().TryDecodeFromBase64(out var code)) {
-        //             ctx.AddFailure(new SinkConsumeFilterValidator.Failures.FunctionEncodingFailure());
-        //             return;
-        //         }
-        //     })
-        // );
+        When(x => x.HasConfiguration,
+            () => RuleFor(x => x)
+                .Custom(async void (options, ctx) => {
+                    try {
+                        await options.DecodeConfiguration();
+                    } catch (Exception) {
+                        ctx.AddFailure(new Failures.ConfigurationEncodingFailure());
+                    }
+                }));
     }
 
-    // public static class Failures {
-    //     public class FunctionEncodingFailure : ValidationFailure {
-    //         public FunctionEncodingFailure() {
-    //             PropertyName = nameof(SinkTransformerOptions.Function);
-    //             ErrorCode    = nameof(FunctionEncodingFailure);
-    //             ErrorMessage = "Transform function must be a valid base64 encoded string";
-    //         }
-    //     }
-    //
-    //     public class FunctionCompilationFailure : ValidationFailure {
-    //         public FunctionCompilationFailure(Jint.Runtime.JavaScriptException ex) {
-    //             PropertyName = nameof(SinkTransformerOptions.Function);
-    //             ErrorCode    = nameof(FunctionCompilationFailure);
-    //             ErrorMessage = $"Failed to compile transform function: {ex.Message}";
-    //         }
-    //     }
-    //
-    //     public class FunctionNotFoundFailure : ValidationFailure {
-    //         public FunctionNotFoundFailure(string functionDefinition) {
-    //             PropertyName = nameof(SinkTransformerOptions.Function);
-    //             ErrorCode    = nameof(FunctionNotFoundFailure);
-    //             ErrorMessage = $"Failed to find transform function definition: '{functionDefinition}'";
-    //         }
-    //     }
-    // }
+    public static class Failures {
+        public class ConfigurationEncodingFailure : ValidationFailure {
+            public ConfigurationEncodingFailure() {
+                PropertyName = nameof(SerilogSinkOptions.Configuration);
+                ErrorCode    = nameof(ConfigurationEncodingFailure);
+                ErrorMessage = "Configuration must be a valid base64 encoded string";
+            }
+        }
+    }
 }

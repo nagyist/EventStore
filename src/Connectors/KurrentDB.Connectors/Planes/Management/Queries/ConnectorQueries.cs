@@ -6,7 +6,6 @@ using KurrentDB.Connect.Readers.Configuration;
 using KurrentDB.Connectors.Management.Contracts.Queries;
 using Kurrent.Surge;
 using Kurrent.Surge.Protocol.Consumers;
-using Kurrent.Toolkit;
 using KurrentDB.Common.Utils;
 using KurrentDB.Connectors.Infrastructure;
 using KurrentDB.Connectors.Infrastructure.Connect.Components.Connectors;
@@ -55,7 +54,7 @@ public class ConnectorQueries {
             (query.State.IsEmpty()            || query.State.Contains(conn.State))                       &&
             (query.InstanceTypeName.IsEmpty() || query.InstanceTypeName.Contains(conn.InstanceTypeName)) &&
             (query.ConnectorId.IsEmpty()      || query.ConnectorId.Contains(conn.ConnectorId))           &&
-            (query.ShowDeleted ? conn.DeleteTime is not null : conn.DeleteTime is null);
+            (query.ShowDeleted                || conn.DeleteTime is null);
 
         Func<Connector, CancellationToken, ValueTask<Connector>> EnrichWithPosition() =>
             async (conn, token) => {

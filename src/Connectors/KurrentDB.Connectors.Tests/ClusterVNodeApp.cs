@@ -14,6 +14,7 @@ using KurrentDB.Core.Configuration;
 using KurrentDB.Core.Messages;
 // using KurrentDB.Surge.Testing.Extensions;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -38,7 +39,7 @@ public class ClusterVNodeApp : IAsyncDisposable {
 
     public async Task<(ClusterVNodeOptions Options, IServiceProvider Services)> Start(TimeSpan? readinessTimeout = null, Dictionary<string, string?>? overrides = null, Action<IServiceCollection>? configureServices = null) {
         var settings = overrides is not null
-            ? DefaultSettings.With(x => overrides.ForEach((key, value) => x[key] = value))
+            ? DefaultSettings.ToDictionary().With(x => overrides.ForEach((key, value) => x[key] = value))
             : DefaultSettings;
 
         var options = GetClusterVNodeOptions(settings);
@@ -53,6 +54,8 @@ public class ClusterVNodeApp : IAsyncDisposable {
             .With(x => esdb.Node.Startup.ConfigureServices(x.Services))
             .With(x => x.Services.AddSingleton<IHostedService>(esdb))
             .With(x => configureServices?.Invoke(x.Services));
+
+        builder.WebHost.ConfigureKestrel(serverOptions => serverOptions.ListenAnyIP(0));
 
         App = builder.Build().With(x => esdb.Node.Startup.Configure(x));
 

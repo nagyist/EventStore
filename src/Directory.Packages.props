@@ -71,6 +71,7 @@
     <PackageVersion Include="Microsoft.Extensions.FileProviders.Embedded" Version="8.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.4" />
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="9.4.0" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.WindowsServices" Version="8.0.1" />
     <PackageVersion Include="Microsoft.FASTER.Core" Version="1.9.16" />
     <PackageVersion Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" Version="8.6.0" />
     <PackageVersion Include="Microsoft.IdentityModel.Tokens" Version="8.6.0" />

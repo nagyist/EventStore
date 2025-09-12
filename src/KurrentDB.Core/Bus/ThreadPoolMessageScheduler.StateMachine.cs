@@ -6,8 +6,10 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using DotNext;
 using DotNext.Threading;
 using KurrentDB.Core.Messaging;
+using KurrentDB.Core.Time;
 
 namespace KurrentDB.Core.Bus;
 
@@ -34,6 +36,7 @@ partial class ThreadPoolMessageScheduler {
 		private ConfiguredValueTaskAwaitable.ConfiguredValueTaskAwaiter _awaiter;
 		private Message _message;
 		private AsyncExclusiveLock _groupLock;
+		private Instant _timestamp; // enqueuedAt or processingStartedAt depending on the state.
 
 		public AsyncStateMachine(ThreadPoolMessageScheduler scheduler) {
 			_scheduler = scheduler;
@@ -60,6 +63,7 @@ partial class ThreadPoolMessageScheduler {
 		internal void Schedule(Message message, AsyncExclusiveLock groupLock) {
 			_message = message;
 			_groupLock = groupLock;
+			ReportEnqueued();
 
 			if (groupLock is null) {
 				// no synchronization group provided, simply enqueue the processing to the thread pool
@@ -105,10 +109,11 @@ partial class ThreadPoolMessageScheduler {
 				// We must consume the result, even if it's void. This is required by ValueTask behavioral contract.
 				_awaiter.GetResult();
 			} catch (Exception e) {
+				var knownCancellation = e is OperationCanceledException canceledEx &&
+				                        IsKnownCancellation(canceledEx);
 				CleanUp();
 				ProcessingCompleted();
-				if (e is OperationCanceledException canceledEx &&
-				    canceledEx.CancellationToken == _scheduler._lifetimeToken) {
+				if (knownCancellation) {
 					return false;
 				}
 
@@ -126,6 +131,8 @@ partial class ThreadPoolMessageScheduler {
 
 		[SuppressMessage("Reliability", "CA2012", Justification = "The state machine is coded manually")]
 		private void InvokeConsumer() {
+			ReportDequeued();
+
 			// ALWAYS called on the thread pool.
 			_awaiter = _scheduler
 				._consumer(_message, _scheduler._lifetimeToken)
@@ -142,7 +149,7 @@ partial class ThreadPoolMessageScheduler {
 		private void OnConsumerCompleted() {
 			try {
 				_awaiter.GetResult();
-			} catch (OperationCanceledException e) when (e.CancellationToken == _scheduler._lifetimeToken) {
+			} catch (OperationCanceledException e) when (IsKnownCancellation(e)) {
 				// suspend
 			} catch (Exception ex) {
 				Log.Error(ex,
@@ -153,6 +160,7 @@ partial class ThreadPoolMessageScheduler {
 				throw;
 #endif
 			} finally {
+				ReportCompleted();
 				_groupLock?.Release();
 				CleanUp();
 				ProcessingCompleted();
@@ -166,6 +174,47 @@ partial class ThreadPoolMessageScheduler {
 			_groupLock = null;
 			_awaiter = default;
 		}
+
+		private void ReportEnqueued() => _timestamp = NeedsMetrics ? _scheduler._tracker.Now : default;
+
+		private void ReportDequeued() {
+			if (NeedsMetrics) {
+				_timestamp = _scheduler._tracker.RecordMessageDequeued(_timestamp);
+
+				var queueCnt = _scheduler._processingCount;
+				Debug.Assert(queueCnt > 0U);
+
+				queueCnt -= 1U; // exclude the current message
+				_scheduler._statsCollector.ProcessingStarted(
+					_message.GetType(),
+					int.CreateSaturating(queueCnt)); // avoid any overflow exceptions
+			}
+		}
+
+		// should not be called outside the lock, because the old stats collector is not thread safe
+		private void ReportCompleted() {
+			if (NeedsMetrics) {
+				_scheduler._tracker.RecordMessageProcessed(_timestamp, _message.Label);
+				_scheduler._statsCollector.ProcessingEnded(itemsProcessed: 1);
+			}
+		}
+
+		// For now only producing metrics when the ThreadPoolMessageScheduler is configured as a queue
+		// i.e. SynchronizeMessagesWithUnknownAffinity is true. The queue for UnknownAffinity is the queue
+		// we report metrics for. In the future this can be generalised to treat each affinity as a queue.
+		[MemberNotNullWhen(true, nameof(_groupLock))]
+		[MemberNotNullWhen(true, nameof(_message))]
+		private bool NeedsMetrics {
+			get {
+				Debug.Assert(_message is not null);
+
+				return ReferenceEquals(_message.Affinity, Message.UnknownAffinity)
+				       && _groupLock is not null;
+			}
+		}
+
+		private bool IsKnownCancellation(OperationCanceledException e)
+			=> e.CancellationToken.IsOneOf([_scheduler._lifetimeToken, _message.CancellationToken]);
 	}
 
 	private sealed class PoolingAsyncStateMachine(ThreadPoolMessageScheduler scheduler) : AsyncStateMachine(scheduler) {

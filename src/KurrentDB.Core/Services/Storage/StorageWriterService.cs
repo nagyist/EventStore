@@ -153,9 +153,10 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		Writer = Ensure.NotNull(writer);
 
 		_writerBus = new("StorageWriterBus", watchSlowMsg: true, TimeSpan.FromMilliseconds(500));
-		_writerQueue = new(new AdHocHandler<Message>(CommonHandle)) {
+		_writerQueue = new("StorageWriterQueue", new AdHocHandler<Message>(CommonHandle)) {
 			SynchronizeMessagesWithUnknownAffinity = true,
-			Name = "StorageWriterQueue",
+			Trackers = queueTrackers,
+			StatsManager = queueStatsManager,
 		};
 
 		SubscribeToMessage<SystemMessage.SystemInit>();

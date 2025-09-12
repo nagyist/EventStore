@@ -21,6 +21,7 @@ using KurrentDB.Core.Certificates;
 using KurrentDB.Core.Configuration;
 using KurrentDB.Core.Configuration.Sources;
 using KurrentDB.Core.Services.Transport.Http;
+using KurrentDB.Logging;
 using KurrentDB.Services;
 using KurrentDB.Tools;
 using KurrentDB.UI.Services;
@@ -45,17 +46,14 @@ var configuration = KurrentConfiguration.Build(optionsWithLegacyDefaults, args);
 ThreadPool.SetMaxThreads(1000, 1000);
 var exitCodeSource = new TaskCompletionSource<int>();
 
-Log.Logger = EventStoreLoggerConfiguration.ConsoleLog;
+Log.Logger = KurrentLoggerConfiguration.ConsoleLog;
 try {
 	var options = ClusterVNodeOptions.FromConfiguration(configuration);
 
-	EventStoreLoggerConfiguration.Initialize(options.Logging.Log, options.GetComponentName(),
-		options.Logging.LogConsoleFormat,
-		options.Logging.LogFileSize,
-		options.Logging.LogFileInterval,
-		options.Logging.LogFileRetentionCount,
-		options.Logging.DisableLogFile,
-		options.Logging.LogConfig);
+	Log.Logger = KurrentLoggerConfiguration
+		.CreateLoggerConfiguration(options.Logging, options.GetComponentName())
+		.AddOpenTelemetryLogger(configuration, options.GetComponentName())
+		.CreateLogger();
 
 	if (options.Application.Help) {
 		await Console.Out.WriteLineAsync(ClusterVNodeOptions.HelpText);

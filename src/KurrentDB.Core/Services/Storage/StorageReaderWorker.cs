@@ -19,8 +19,10 @@ using KurrentDB.Core.Services.Storage.ReaderIndex;
 using KurrentDB.Core.Services.TimerService;
 using KurrentDB.Core.TransactionLog.Checkpoint;
 using KurrentDB.Core.TransactionLog.Chunks.TFChunk;
+using EventRecord = KurrentDB.Core.Data.EventRecord;
 using ILogger = Serilog.ILogger;
 using ReadStreamResult = KurrentDB.Core.Data.ReadStreamResult;
+using ResolvedEvent = KurrentDB.Core.Data.ResolvedEvent;
 
 // ReSharper disable StaticMemberInGenericType
 
@@ -51,6 +53,7 @@ public class StorageReaderWorker<TStreamId> :
 	private readonly IReadOnlyCheckpoint _writerCheckpoint;
 	private readonly IPublisher _publisher;
 	private readonly IVirtualStreamReader _virtualStreamReader;
+	private readonly CancellationTokenMultiplexer _multiplexer;
 	private const int MaxPageSize = 4096;
 
 	private readonly Message _scheduleBatchPeriodCompletion;
@@ -69,6 +72,7 @@ public class StorageReaderWorker<TStreamId> :
 		_systemStreams = Ensure.NotNull(systemStreams);
 		_writerCheckpoint = Ensure.NotNull(writerCheckpoint);
 		_virtualStreamReader = virtualStreamReader;
+		_multiplexer = new() { MaximumRetained = 100 };
 
 		_scheduleBatchPeriodCompletion = TimerMessage.Schedule.Create(
 			TimeSpan.FromSeconds(10),
@@ -88,15 +92,17 @@ public class StorageReaderWorker<TStreamId> :
 			return;
 		}
 
-		var cts = token.LinkTo(msg.CancellationToken);
+		var cts = _multiplexer.Combine([token, msg.CancellationToken]);
+		ClientMessage.ReadEventCompleted ev;
 		try {
-			var ev = await ReadEvent(msg, token);
-			msg.Envelope.ReplyWith(ev);
-		} catch (OperationCanceledException ex) when (ex.CancellationToken == cts?.Token) {
-			throw new OperationCanceledException(null, ex, cts.CancellationOrigin);
+			ev = await ReadEvent(msg, cts.Token);
+		} catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token) {
+			throw new OperationCanceledException(ex.Message, ex, cts.CancellationOrigin);
 		} finally {
-			cts?.Dispose();
+			await cts.DisposeAsync();
 		}
+
+		msg.Envelope.ReplyWith(ev);
 	}
 
 	async ValueTask IAsyncHandle<ClientMessage.ReadStreamEventsForward>.HandleAsync(ClientMessage.ReadStreamEventsForward msg, CancellationToken token) {
@@ -119,15 +125,15 @@ public class StorageReaderWorker<TStreamId> :
 		}
 
 		ClientMessage.ReadStreamEventsForwardCompleted res;
-		var cts = token.LinkTo(msg.CancellationToken);
+		var cts = _multiplexer.Combine([token, msg.CancellationToken]);
 		try {
-			res = SystemStreams.IsVirtualStream(msg.EventStreamId)
-				? await _virtualStreamReader.ReadForwards(msg, token)
-				: await ReadStreamEventsForward(msg, token);
-		} catch (OperationCanceledException ex) when (ex.CancellationToken == cts?.Token) {
+			res = await (SystemStreams.IsVirtualStream(msg.EventStreamId)
+				? _virtualStreamReader.ReadForwards(msg, cts.Token)
+				: ReadStreamEventsForward(msg, cts.Token));
+		} catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token) {
 			throw new OperationCanceledException(null, ex, cts.CancellationOrigin);
 		} finally {
-			cts?.Dispose();
+			await cts.DisposeAsync();
 		}
 
 		switch (res.Result) {
@@ -154,7 +160,8 @@ public class StorageReaderWorker<TStreamId> :
 		}
 	}
 
-	async ValueTask IAsyncHandle<ClientMessage.ReadStreamEventsBackward>.HandleAsync(ClientMessage.ReadStreamEventsBackward msg, CancellationToken token) {
+	async ValueTask IAsyncHandle<ClientMessage.ReadStreamEventsBackward>.HandleAsync(
+		ClientMessage.ReadStreamEventsBackward msg, CancellationToken token) {
 		if (msg.CancellationToken.IsCancellationRequested)
 			return;
 
@@ -166,18 +173,19 @@ public class StorageReaderWorker<TStreamId> :
 			return;
 		}
 
-		var cts = token.LinkTo(msg.CancellationToken);
+		var cts = _multiplexer.Combine([token, msg.CancellationToken]);
+		ClientMessage.ReadStreamEventsBackwardCompleted res;
 		try {
-			var res = SystemStreams.IsVirtualStream(msg.EventStreamId)
-				? await _virtualStreamReader.ReadBackwards(msg, token)
-				: await ReadStreamEventsBackward(msg, token);
-
-			msg.Envelope.ReplyWith(res);
-		} catch (OperationCanceledException ex) when (ex.CancellationToken == cts?.Token) {
+			res = await (SystemStreams.IsVirtualStream(msg.EventStreamId)
+				? _virtualStreamReader.ReadBackwards(msg, cts.Token)
+				: ReadStreamEventsBackward(msg, cts.Token));
+		} catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token) {
 			throw new OperationCanceledException(null, ex, cts.CancellationOrigin);
 		} finally {
-			cts?.Dispose();
+			await cts.DisposeAsync();
 		}
+
+		msg.Envelope.ReplyWith(res);
 	}
 
 	async ValueTask IAsyncHandle<ClientMessage.ReadAllEventsForward>.HandleAsync(ClientMessage.ReadAllEventsForward msg, CancellationToken token) {
@@ -338,17 +346,17 @@ public class StorageReaderWorker<TStreamId> :
 
 	async ValueTask IAsyncHandle<StorageMessage.EffectiveStreamAclRequest>.HandleAsync(StorageMessage.EffectiveStreamAclRequest msg, CancellationToken token) {
 		Message reply;
-		var cts = token.LinkTo(msg.CancellationToken);
+		var cts = _multiplexer.Combine([token, msg.CancellationToken]);
 
 		try {
-			var acl = await _readIndex.GetEffectiveAcl(_readIndex.GetStreamId(msg.StreamId), token);
+			var acl = await _readIndex.GetEffectiveAcl(_readIndex.GetStreamId(msg.StreamId), cts.Token);
 			reply = new StorageMessage.EffectiveStreamAclResponse(acl);
-		} catch (OperationCanceledException e) when (e.CausedBy(cts, msg.CancellationToken)) {
+		} catch (OperationCanceledException ex) when (ex.CausedBy(cts, msg.CancellationToken)) {
 			reply = new StorageMessage.OperationCancelledMessage(msg.CancellationToken);
-		} catch (OperationCanceledException ex) when (ex.CancellationToken == cts?.Token) {
+		} catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token) {
 			throw new OperationCanceledException(null, ex, cts.CancellationOrigin);
 		} finally {
-			cts?.Dispose();
+			await cts.DisposeAsync();
 		}
 
 		msg.Envelope.ReplyWith(reply);
@@ -748,18 +756,18 @@ public class StorageReaderWorker<TStreamId> :
 	}
 
 	async ValueTask IAsyncHandle<StorageMessage.StreamIdFromTransactionIdRequest>.HandleAsync(StorageMessage.StreamIdFromTransactionIdRequest message, CancellationToken token) {
-		var cts = token.LinkTo(message.CancellationToken);
+		var cts = _multiplexer.Combine([token, message.CancellationToken]);
 		Message reply;
 		try {
-			var streamId = await _readIndex.GetEventStreamIdByTransactionId(message.TransactionId, token);
-			var streamName = await _readIndex.GetStreamName(streamId, token);
+			var streamId = await _readIndex.GetEventStreamIdByTransactionId(message.TransactionId, cts.Token);
+			var streamName = await _readIndex.GetStreamName(streamId, cts.Token);
 			reply = new StorageMessage.StreamIdFromTransactionIdResponse(streamName);
 		} catch (OperationCanceledException ex) when (ex.CausedBy(cts, message.CancellationToken)) {
 			reply = new StorageMessage.OperationCancelledMessage(message.CancellationToken);
-		} catch (OperationCanceledException ex) when (ex.CancellationToken == cts?.Token) {
+		} catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token) {
 			throw new OperationCanceledException(null, ex, cts.CancellationOrigin);
 		} finally {
-			cts?.Dispose();
+			await cts.DisposeAsync();
 		}
 
 		message.Envelope.ReplyWith(reply);

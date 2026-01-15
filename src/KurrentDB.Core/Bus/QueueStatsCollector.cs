@@ -11,7 +11,10 @@ using KurrentDB.Core.Services.Monitoring.Stats;
 namespace KurrentDB.Core.Bus;
 
 public interface IQueueStatsCollector {
+	void Start();
+	void Stop();
 	void ProcessingStarted(Type msgType, int queueLength);
+	void ReportQueueLength(int queueLength);
 	void ProcessingEnded(int itemsProcessed);
 
 	QueueStats GetStatistics(int currentQueueLength);
@@ -20,7 +23,14 @@ public interface IQueueStatsCollector {
 }
 
 file sealed class NoOpQueueStatsCollector : IQueueStatsCollector {
+	void IQueueStatsCollector.Start() {
+	}
+	void IQueueStatsCollector.Stop() {
+	}
 	void IQueueStatsCollector.ProcessingStarted(Type msgType, int queueLength) {
+	}
+
+	void IQueueStatsCollector.ReportQueueLength(int queueLength) {
 	}
 
 	void IQueueStatsCollector.ProcessingEnded(int itemsProcessed) {
@@ -117,10 +127,16 @@ public class QueueStatsCollector : IQueueStatsCollector {
 	}
 
 	public void ProcessingStarted(Type msgType, int queueLength) {
-		_lifetimeQueueLengthPeak = _lifetimeQueueLengthPeak > queueLength ? _lifetimeQueueLengthPeak : queueLength;
-		_currentQueueLengthPeak = _currentQueueLengthPeak > queueLength ? _currentQueueLengthPeak : queueLength;
+		ReportQueueLength(queueLength);
 
 		_inProgressMsgType = msgType;
+	}
+
+	void IQueueStatsCollector.ReportQueueLength(int queueLength) => ReportQueueLength(queueLength);
+
+	private void ReportQueueLength(int queueLength) {
+		_lifetimeQueueLengthPeak = _lifetimeQueueLengthPeak > queueLength ? _lifetimeQueueLengthPeak : queueLength;
+		_currentQueueLengthPeak = _currentQueueLengthPeak > queueLength ? _currentQueueLengthPeak : queueLength;
 	}
 
 	public void ProcessingEnded(int itemsProcessed) {

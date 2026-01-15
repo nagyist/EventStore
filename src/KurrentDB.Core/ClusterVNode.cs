@@ -517,8 +517,8 @@ public class ClusterVNode<TStreamId> :
 
 		// MISC WORKERS
 		_workerBus = new("WorkerBus", metricsConfiguration.GetBusSlowMessageThreshold);
-		_workersHandler = new ThreadPoolMessageScheduler("Worker Scheduler", _workerBus) {
-			SynchronizeMessagesWithUnknownAffinity = false,
+		_workersHandler = new("Worker Scheduler", _workerBus) {
+			Strategy = ThreadPoolMessageScheduler.TreatUnknownAffinityAsNoAffinity(),
 		};
 
 		void StartSubsystems() {
@@ -579,7 +579,7 @@ public class ClusterVNode<TStreamId> :
 		var monitoringInnerBus = new InMemoryBus("MonitoringInnerBus", metricsConfiguration.GetBusSlowMessageThreshold);
 		var monitoringRequestBus = new InMemoryBus("MonitoringRequestBus", metricsConfiguration.GetBusSlowMessageThreshold);
 		var monitoringQueue = new ThreadPoolMessageScheduler("MonitoringQueue", monitoringInnerBus) {
-			SynchronizeMessagesWithUnknownAffinity = true,
+			Strategy = ThreadPoolMessageScheduler.SynchronizeMessagesWithUnknownAffinity(),
 			Trackers = trackers.QueueTrackers,
 			StatsManager = _queueStatsManager,
 		};
@@ -764,7 +764,10 @@ public class ClusterVNode<TStreamId> :
 		// Storage Reader
 		var storageReader = new StorageReaderService<TStreamId>(_mainQueue, _mainBus, readIndex,
 			logFormat.SystemStreams, Db.Config.WriterCheckpoint.AsReadOnly(),
-			virtualStreamReader, secondaryIndexReaders, metricsConfiguration.GetBusSlowMessageThreshold, options.Database.InternalConcurrentReadsLimit);
+			virtualStreamReader, secondaryIndexReaders, metricsConfiguration.GetBusSlowMessageThreshold,
+			trackers.QueueTrackers,
+			_queueStatsManager,
+			options.Database.InternalConcurrentReadsLimit);
 
 		_mainBus.Subscribe<SystemMessage.SystemInit>(storageReader);
 		_mainBus.Subscribe<SystemMessage.BecomeShuttingDown>(storageReader);
@@ -1109,7 +1112,7 @@ public class ClusterVNode<TStreamId> :
 		// SUBSCRIPTIONS
 		var subscrBus = new InMemoryBus("SubscriptionsBus", metricsConfiguration.GetBusSlowMessageThreshold);
 		var subscrQueue = new ThreadPoolMessageScheduler("Subscriptions", subscrBus) {
-			SynchronizeMessagesWithUnknownAffinity = true,
+			Strategy = ThreadPoolMessageScheduler.SynchronizeMessagesWithUnknownAffinity(),
 			Trackers = trackers.QueueTrackers,
 			StatsManager = _queueStatsManager,
 		};
@@ -1149,7 +1152,7 @@ public class ClusterVNode<TStreamId> :
 		// IO DISPATCHER
 		var perSubscrBus = new InMemoryBus("PersistentSubscriptionsBus", metricsConfiguration.GetBusSlowMessageThreshold);
 		var perSubscrQueue = new ThreadPoolMessageScheduler("PersistentSubscriptions", perSubscrBus) {
-			SynchronizeMessagesWithUnknownAffinity = true,
+			Strategy = ThreadPoolMessageScheduler.SynchronizeMessagesWithUnknownAffinity(),
 			Trackers = trackers.QueueTrackers,
 			StatsManager = _queueStatsManager,
 		};
@@ -1398,7 +1401,7 @@ public class ClusterVNode<TStreamId> :
 		// REDACTION
 		var redactionBus = new InMemoryBus("RedactionBus", metricsConfiguration.GetBusSlowMessageThreshold);
 		var redactionQueue = new ThreadPoolMessageScheduler("Redaction", redactionBus) {
-			SynchronizeMessagesWithUnknownAffinity = true,
+			Strategy = ThreadPoolMessageScheduler.SynchronizeMessagesWithUnknownAffinity(),
 			Trackers = trackers.QueueTrackers,
 			StatsManager = _queueStatsManager,
 		};

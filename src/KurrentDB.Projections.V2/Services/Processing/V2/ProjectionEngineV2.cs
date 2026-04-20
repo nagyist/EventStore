@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using System.Text;
@@ -140,6 +141,18 @@ public sealed class ProjectionEngineV2(
 		var lastCheckpointTime = Instant.Now;
 		var lastLogPosition = checkpoint;
 
+		// When the projection declares a specific set of event types, drop anything else here.
+		// Read-level filters cover the stream/category dimension only; without this, Jint's Handle
+		// overwrites partition state with the event body when no handler matches (matches V1's
+		// EventFilter.Passes behaviour).
+		var handledEventTypes = _config.SourceDefinition.AllEvents
+			? null
+			: new HashSet<string>(
+				_config.SourceDefinition.Events
+					?? throw new InvalidOperationException(
+						$"Projection '{_config.ProjectionName}' declares specific event types (AllEvents=false) but Events is null."),
+				StringComparer.Ordinal);
+
 		try {
 			await foreach (var response in _readStrategy.ReadFrom(checkpoint, ct)) {
 				switch (response) {
@@ -150,6 +163,7 @@ public sealed class ProjectionEngineV2(
 
 						// System events (event types starting with '$') are normally skipped,
 						// but tombstone markers need to be routed so projections can handle $deleted.
+						var dispatched = false;
 						if (coreEvent.Event.EventType.StartsWith('$')) {
 							var projEvent = ConvertToProjectionEvent(coreEvent);
 							// note: HandlesDeletedNotifications is only true when partitioning by stream
@@ -157,16 +171,23 @@ public sealed class ProjectionEngineV2(
 								    projEvent.EventStreamId, projEvent.EventType, projEvent.Data,
 								    out var deletedPartitionStreamId)) {
 								await dispatcher.DispatchPartitionDeleted(deletedPartitionStreamId, logPosition, ct);
+								dispatched = true;
 							} else {
 								break;
 							}
-						} else {
+						} else if (handledEventTypes is null || handledEventTypes.Contains(coreEvent.Event.EventType)) {
 							var projEvent = ConvertToProjectionEvent(coreEvent);
 							await dispatcher.DispatchEvent(projEvent, logPosition, ct);
+							dispatched = true;
 						}
+						// else: event type isn't declared; skip dispatch but still advance
+						// the read position and accrue unhandled bytes below so long tails
+						// of filtered events can't stall checkpoint progress.
 
-						eventsProcessed++;
-						Interlocked.Increment(ref _totalEventsProcessed);
+						if (dispatched) {
+							eventsProcessed++;
+							Interlocked.Increment(ref _totalEventsProcessed);
+						}
 						bytesProcessed += coreEvent.Event.Data.Length + coreEvent.Event.Metadata.Length;
 						lastLogPosition = logPosition;
 
@@ -200,8 +221,10 @@ public sealed class ProjectionEngineV2(
 			// Cancellation is expected during shutdown — fall through to final checkpoint
 		}
 
-		// Inject a final checkpoint marker if there are unprocessed events
-		if (eventsProcessed > 0) {
+		// Inject a final checkpoint marker if the read position has advanced
+		// since the last checkpoint — covers both handled events and tails of
+		// filtered events that still moved the log position forward.
+		if (eventsProcessed > 0 || bytesProcessed > 0) {
 			await coordinator.InjectCheckpointMarker(lastLogPosition, CancellationToken.None);
 		}
 	}

@@ -38,6 +38,25 @@ internal sealed partial class FlightSqlServer(IQueryEngine engine, IAuthorizatio
 	private static readonly Operation ReadOperation = new Operation(Operations.Streams.Read)
 		.WithParameter(Operations.Streams.Parameters.StreamId(SystemStreams.AllStream));
 
+	public override async Task Handshake(
+		IAsyncStreamReader<FlightHandshakeRequest> requestStream,
+		IAsyncStreamWriter<FlightHandshakeResponse> responseStream,
+		ServerCallContext context) {
+
+		EnsureLicensed();
+
+		// for JDBC tooling: return the basic credentials as the bearer token so that JDBC will
+		// submit it as the bearer token in subsequent requests.
+		if (context.RequestHeaders.GetValue("authorization") is
+			['B' or 'b', 'a', 's', 'i', 'c', ' ', .. var credentials]) {
+			await context.WriteResponseHeadersAsync(new Metadata {
+				{ "authorization", $"Bearer {credentials}" }
+			});
+		}
+
+		await responseStream.WriteAsync(new FlightHandshakeResponse());
+	}
+
 	public override async Task<FlightInfo> GetFlightInfo(FlightDescriptor request, ServerCallContext context) {
 		EnsureLicensed();
 		if (!await authProvider.CheckAccessAsync(context.User, ReadOperation, context.CancellationToken))
@@ -63,9 +82,21 @@ internal sealed partial class FlightSqlServer(IQueryEngine engine, IAuthorizatio
 				await PrepareQueryAsync(query, request, context.CancellationToken),
 			CommandPreparedStatementQuery query => await GetPreparedStatementSchemaAsync(query.PreparedStatementHandle, state, request,
 				context.CancellationToken),
+			CommandGetSqlInfo or
+			CommandGetCatalogs or
+			CommandGetDbSchemas or
+			CommandGetTables or
+			CommandGetTableTypes or
+			CommandGetPrimaryKeys or
+			CommandGetExportedKeys or
+			CommandGetImportedKeys or
+			CommandGetCrossReference => EmptyFlightInfo(request),
 			_ => throw FeatureNotSupported()
 		};
 	}
+
+	private static FlightInfo EmptyFlightInfo(FlightDescriptor descriptor) =>
+		new(new Schema([], []), descriptor, []);
 
 	public override async Task DoGet(FlightTicket ticket, FlightServerRecordBatchStreamWriter responseStream, ServerCallContext context) {
 		EnsureLicensed();

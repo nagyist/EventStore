@@ -168,6 +168,23 @@ public partial record ClusterVNodeOptions {
 		[Description("Disable Authentication, Authorization and TLS on all TCP/HTTP interfaces.")]
 		public bool Insecure { get; init; } = false;
 
+		[Description("Disable TLS on all TCP/HTTP interfaces. Authentication and authorization remain active. " +
+		             "Credentials will be transmitted in cleartext. A --cluster-secret is required when --disable-tls is true.")]
+		public bool DisableTls { get; init; } = false;
+
+		public bool TlsDisabled() => Insecure || DisableTls;
+		public bool AuthDisabled() => Insecure;
+
+		/// <summary>
+		/// True iff the ClusterSecret is used to authenticate inter-node traffic:
+		/// whenever TLS is disabled and authentication is still on. With TLS, peers
+		/// authenticate by mTLS; in --insecure there is no auth. Cluster size is not
+		/// part of the predicate: even a single-node deployment has in-process internal
+		/// HTTP callers (e.g. AutoScavenge calling its own admin endpoints) and may in
+		/// future host a read-only replica.
+		/// </summary>
+		public bool UsesClusterSecret() => TlsDisabled() && !AuthDisabled();
+
 		[Description("Allow anonymous access to HTTP API endpoints.")]
 		public bool AllowAnonymousEndpointAccess { get; init; } = false;
 
@@ -283,6 +300,12 @@ public partial record ClusterVNodeOptions {
 
 		[Description("Endpoints for other cluster nodes from which to seed gossip.")]
 		public EndPoint[] GossipSeed { get; init; } = [];
+
+		[Description("Shared secret used by cluster nodes to authenticate with each other when TLS is disabled. " +
+		             "Required when --disable-tls is set. Has no effect when TLS is enabled (nodes will authenticate by mTLS). " +
+		             "Note that since TLS is disabled the secret will be sent in clear text.")]
+		[Sensitive]
+		public string ClusterSecret { get; init; } = "";
 
 		[Description("The interval, in ms, nodes should try to gossip with each other."),
 		 Unit("ms")]

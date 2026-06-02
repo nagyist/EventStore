@@ -276,11 +276,11 @@ public class ClusterVNode<TStreamId> :
 			throw new ArgumentException("InstanceId may not be empty.", nameof(instanceId));
 		}
 
-		if (!options.Application.Insecure) {
+		if (!options.Application.TlsDisabled()) {
 			ReloadCertificates(options);
 
 			if (_certificateProvider?.TrustedRootCerts == null || _certificateProvider?.Certificate == null) {
-				throw new InvalidConfigurationException("A certificate is required unless insecure mode (--insecure) is set.");
+				throw new InvalidConfigurationException("A certificate is required unless TLS is disabled (--insecure or --disable-tls).");
 			}
 		}
 
@@ -294,8 +294,8 @@ public class ClusterVNode<TStreamId> :
 		OptionsFormatter.LogConfig("Archive", archiveOptions);
 		archiveOptions.Validate();
 
-		var disableInternalTcpTls = options.Application.Insecure;
-		var disableExternalTcpTls = options.Application.Insecure;
+		var disableInternalTcpTls = options.Application.TlsDisabled();
+		var disableExternalTcpTls = options.Application.TlsDisabled();
 		var nodeTcpOptions = GetOptions<NodeTcpOptions>("TcpPlugin");
 		var enableExternalTcp = nodeTcpOptions.EnableExternalTcp;
 
@@ -506,7 +506,7 @@ public class ClusterVNode<TStreamId> :
 			streamExistenceFilterCheckpoint, streamExistenceFilterCheckpoint);
 
 		var isSingleNode = options.Cluster.ClusterSize == 1;
-		_disableHttps = options.Application.Insecure;
+		_disableHttps = options.Application.TlsDisabled();
 		_enableUnixSocket = options.Interface.EnableUnixSocket;
 		_queueStatsManager = new QueueStatsManager();
 
@@ -558,13 +558,15 @@ public class ClusterVNode<TStreamId> :
 		_mainBus.Subscribe<SystemMessage.ComponentTerminated>(shutdownService);
 		_mainBus.Subscribe<SystemMessage.PeripheralShutdownTimeout>(shutdownService);
 
-		var uriScheme = options.Application.Insecure ? Uri.UriSchemeHttp : Uri.UriSchemeHttps;
+		var uriScheme = options.Application.TlsDisabled() ? Uri.UriSchemeHttp : Uri.UriSchemeHttps;
 		var clusterDns = options.Cluster.DiscoverViaDns ? options.Cluster.ClusterDns : null;
+		var clusterSecret = options.Application.UsesClusterSecret() ? options.Cluster.ClusterSecret : "";
 
 		_nodeHttpClientFactory = new NodeHttpClientFactory(
 			uriScheme,
 			_internalServerCertificateValidator,
-			_certificateSelector);
+			_certificateSelector,
+			clusterSecret);
 
 		_eventStoreClusterClientCache = new EventStoreClusterClientCache(_mainQueue,
 			(endpoint, publisher) =>
@@ -944,10 +946,10 @@ public class ClusterVNode<TStreamId> :
 		_longHasher = new CompositeHasher<TStreamId>(logFormat.LowHasher, logFormat.HighHasher);
 
 		// AUTHENTICATION INFRASTRUCTURE - delegate to plugins
-		authorizationProviderFactory ??= !options.Application.Insecure
+		authorizationProviderFactory ??= !options.Application.AuthDisabled()
 			? throw new InvalidConfigurationException($"An {nameof(AuthorizationProviderFactory)} is required when running securely.")
 			: new AuthorizationProviderFactory(_ => new PassthroughAuthorizationProviderFactory());
-		authenticationProviderFactory ??= !options.Application.Insecure
+		authenticationProviderFactory ??= !options.Application.AuthDisabled()
 			? throw new InvalidConfigurationException($"An {nameof(AuthenticationProviderFactory)} is required when running securely.")
 			: new AuthenticationProviderFactory(_ => new PassthroughAuthenticationProviderFactory());
 		additionalPersistentSubscriptionConsumerStrategyFactories ??= [];
@@ -986,8 +988,10 @@ public class ClusterVNode<TStreamId> :
 						new InternalTcpDispatcher(TimeSpan.FromMilliseconds(options.Database.WriteTimeoutMs)),
 						TimeSpan.FromMilliseconds(options.Interface.ReplicationHeartbeatInterval),
 						TimeSpan.FromMilliseconds(options.Interface.ReplicationHeartbeatTimeout),
-						_authenticationProvider, authorizationGateway, null, null, null, ESConsts.UnrestrictedPendingSendBytes,
-					ESConsts.MaxConnectionQueueSize);
+						_authenticationProvider, authorizationGateway, null, null, null,
+						expectedClusterSecret: clusterSecret,
+						ESConsts.UnrestrictedPendingSendBytes,
+						ESConsts.MaxConnectionQueueSize);
 					_mainBus.Subscribe<SystemMessage.SystemInit>(intTcpService);
 					_mainBus.Subscribe<SystemMessage.SystemStart>(intTcpService);
 					_mainBus.Subscribe<SystemMessage.BecomeShuttingDown>(intTcpService);
@@ -1001,6 +1005,7 @@ public class ClusterVNode<TStreamId> :
 						TimeSpan.FromMilliseconds(options.Interface.ReplicationHeartbeatTimeout),
 						_authenticationProvider, authorizationGateway,
 						_certificateSelector, _intermediateCertsSelector, _internalClientCertificateValidator,
+						expectedClusterSecret: "",
 						ESConsts.UnrestrictedPendingSendBytes,
 						ESConsts.MaxConnectionQueueSize);
 					_mainBus.Subscribe<SystemMessage.SystemInit>(intSecTcpService);
@@ -1032,12 +1037,18 @@ public class ClusterVNode<TStreamId> :
 			throw new InvalidConfigurationException($"The server does not support any authentication scheme supported by the '{_authenticationProvider.Name}' authentication provider.");
 		}
 
-		if (!options.Application.Insecure) {
-			//transport-level authentication providers
+		//transport-level authentication providers
+		if (options.Application.TlsDisabled()) {
+			if (clusterSecret.Length > 0) {
+				httpAuthenticationProviders.Add(new ClusterSecretAuthenticationProvider(clusterSecret));
+			}
+		} else {
 			httpAuthenticationProviders.Add(new NodeCertificateAuthenticationProvider(
 				getCertificateReservedNodeCommonName: () => _certificateProvider.GetReservedNodeCommonName(),
 				disableClientAuthEkuValidation: options.Certificate.DisableClientAuthEkuValidation));
+		}
 
+		if (!options.Application.AuthDisabled()) {
 			if (options.Interface.EnableTrustedAuth)
 				httpAuthenticationProviders.Add(new TrustedHttpAuthenticationProvider());
 
@@ -1063,7 +1074,7 @@ public class ClusterVNode<TStreamId> :
 			options,
 			new Dictionary<string, bool> {
 				["projections"] = options.Projection.RunProjections != ProjectionType.None || options.DevMode.Dev,
-				["userManagement"] = options.Auth.AuthenticationType == Opts.AuthenticationTypeDefault && !options.Application.Insecure,
+				["userManagement"] = options.Auth.AuthenticationType == Opts.AuthenticationTypeDefault && !options.Application.AuthDisabled(),
 				["atomPub"] = options.Interface.EnableAtomPubOverHttp || options.DevMode.Dev
 			},
 			_authenticationProvider
@@ -1509,6 +1520,7 @@ public class ClusterVNode<TStreamId> :
 				options.Cluster.ReadOnlyReplica,
 				!disableInternalTcpTls, _internalServerCertificateValidator,
 				_certificateSelector,
+				clusterSecret: clusterSecret,
 				TimeSpan.FromMilliseconds(options.Interface.ReplicationHeartbeatTimeout),
 				TimeSpan.FromMilliseconds(options.Interface.ReplicationHeartbeatInterval),
 				TimeSpan.FromMilliseconds(options.Database.WriteTimeoutMs));
@@ -1987,7 +1999,7 @@ public class ClusterVNode<TStreamId> :
 	}
 
 	private void ReloadCertificates(ClusterVNodeOptions options) {
-		if (options.Application.Insecure) {
+		if (options.Application.TlsDisabled()) {
 			Log.Information("Skipping reload of certificates since TLS is disabled.");
 			return;
 		}
